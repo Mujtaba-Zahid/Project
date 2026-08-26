@@ -1,4 +1,4 @@
--- IDB PROJECT: PERSONAL FINANCE TRACKER
+--  PERSONAL FINANCE TRACKER
 show data_directory;
 
 -- Tables:
