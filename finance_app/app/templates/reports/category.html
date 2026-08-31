@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Category Breakdown — FinanceFlow{% endblock %}
+{% block page_title %}Spending by Category{% endblock %}
+
+{% block content %}
+{% if data %}
+<div class="table-container">
+    <table>
+        <thead><tr><th>Category</th><th style="text-align:right">Total Spent</th><th style="text-align:right">Transactions</th><th style="text-align:right">Average</th></tr></thead>
+        <tbody>
+            {% for row in data %}
+            <tr>
+                <td class="font-bold">{{ row.icon }} {{ row.name }}</td>
+                <td style="text-align:right" class="text-danger">{{ '{:,.0f}'.format(row.total) }}</td>
+                <td style="text-align:right">{{ row.count }}</td>
+                <td style="text-align:right" class="text-muted">{{ '{:,.0f}'.format(row.avg) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state"><div class="empty-state-text">No expense data yet</div></div>
+{% endif %}
+{% endblock %}

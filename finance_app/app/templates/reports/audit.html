@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Audit Log — FinanceFlow{% endblock %}
+{% block page_title %}Audit Log{% endblock %}
+
+{% block content %}
+{% if logs.items %}
+<div class="table-container">
+    <table>
+        <thead><tr><th>Time</th><th>Table</th><th>Operation</th><th>Record</th><th>Note</th></tr></thead>
+        <tbody>
+            {% for log in logs.items %}
+            <tr>
+                <td class="text-muted">{{ log.changed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td><span class="badge badge-active">{{ log.table_name }}</span></td>
+                <td>{{ log.operation }}</td>
+                <td>#{{ log.record_id }}</td>
+                <td>{{ log.note or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if logs.pages > 1 %}
+<div class="pagination">
+    {% for p in logs.iter_pages() %}
+        {% if p %}<a href="{{ url_for('reports.audit_log', page=p) }}" class="{% if p == logs.page %}active{% endif %}">{{ p }}</a>{% else %}<span>…</span>{% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+{% else %}
+<div class="empty-state"><div class="empty-state-text">No audit entries yet</div></div>
+{% endif %}
+{% endblock %}

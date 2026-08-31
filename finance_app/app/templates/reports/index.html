@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Reports — FinanceFlow{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<div class="kpi-grid">
+    <a href="{{ url_for('reports.monthly') }}" style="text-decoration:none;color:inherit;">
+        <div class="kpi-card">
+            <div class="kpi-icon">📅</div>
+            <div class="kpi-label">Monthly Summary</div>
+            <div style="color:var(--text-secondary);font-size:0.85rem;margin-top:8px;">Income vs expense breakdown by month</div>
+        </div>
+    </a>
+    <a href="{{ url_for('reports.category_breakdown') }}" style="text-decoration:none;color:inherit;">
+        <div class="kpi-card">
+            <div class="kpi-icon">📊</div>
+            <div class="kpi-label">Category Breakdown</div>
+            <div style="color:var(--text-secondary);font-size:0.85rem;margin-top:8px;">Spending analysis per category</div>
+        </div>
+    </a>
+    <a href="{{ url_for('reports.export_csv') }}" style="text-decoration:none;color:inherit;">
+        <div class="kpi-card">
+            <div class="kpi-icon">📥</div>
+            <div class="kpi-label">Export CSV</div>
+            <div style="color:var(--text-secondary);font-size:0.85rem;margin-top:8px;">Download all transactions as CSV</div>
+        </div>
+    </a>
+    <a href="{{ url_for('reports.audit_log') }}" style="text-decoration:none;color:inherit;">
+        <div class="kpi-card">
+            <div class="kpi-icon">📝</div>
+            <div class="kpi-label">Audit Log</div>
+            <div style="color:var(--text-secondary);font-size:0.85rem;margin-top:8px;">View activity and change history</div>
+        </div>
+    </a>
+</div>
+{% endblock %}

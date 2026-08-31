@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Savings Goals — FinanceFlow{% endblock %}
+{% block page_title %}Savings Goals{% endblock %}
+{% block top_actions %}<a href="{{ url_for('savings.add') }}" class="btn btn-primary btn-sm">+ Create Goal</a>{% endblock %}
+
+{% block content %}
+{% if goals %}
+<div class="kpi-grid">
+    {% for goal in goals %}
+    <div class="goal-card">
+        <div class="goal-header">
+            <div>
+                <div class="goal-name">🎯 {{ goal.goal_name }}</div>
+                <span class="badge badge-{{ 'active' if goal.status == 'active' else 'inactive' }}">{{ goal.status }}</span>
+                {% if goal.is_overdue %}<span class="badge badge-warning" style="margin-left:4px">Overdue</span>{% endif %}
+            </div>
+        </div>
+        <div class="goal-amounts">
+            <span>Saved: <span class="goal-saved">{{ '{:,.0f}'.format(goal.saved_amount|float) }}</span></span>
+            <span>Target: {{ '{:,.0f}'.format(goal.target_amount|float) }}</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill {% if goal.progress_pct >= 100 %}success{% endif %}" style="width: {{ [goal.progress_pct, 100] | min }}%"></div>
+        </div>
+        <div class="goal-pct">{{ goal.progress_pct }}%</div>
+        {% if goal.deadline %}
+        <div class="text-muted" style="font-size:0.8rem;margin-top:4px;">Deadline: {{ goal.deadline.strftime('%b %d, %Y') }}</div>
+        {% endif %}
+        {% if goal.status == 'active' %}
+        <div class="flex gap-1 mt-2">
+            <a href="{{ url_for('savings.contribute', goal_id=goal.goal_id) }}" class="btn btn-success btn-sm">+ Contribute</a>
+            <a href="{{ url_for('savings.edit', goal_id=goal.goal_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+            <form method="POST" action="{{ url_for('savings.delete', goal_id=goal.goal_id) }}" class="inline-form" data-confirm="Cancel this goal?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">🎯</div>
+    <div class="empty-state-text">No savings goals yet</div>
+    <a href="{{ url_for('savings.add') }}" class="btn btn-primary">+ Create Goal</a>
+</div>
+{% endif %}
+{% endblock %}

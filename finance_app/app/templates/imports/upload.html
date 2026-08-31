@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Import CSV — FinanceFlow{% endblock %}
+{% block page_title %}Import Bank Statement{% endblock %}
+
+{% block content %}
+<div class="form-card card">
+    <h3 class="card-title mb-2">Upload CSV File</h3>
+    <p class="text-muted mb-3">Upload a bank statement CSV file to import transactions. You'll be able to preview and map columns before importing.</p>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label>Select Account</label>
+            <select name="account_id" class="form-control" required>
+                <option value="">-- Choose account --</option>
+                {% for acct in accounts %}
+                <option value="{{ acct.account_id }}">{{ acct.account_name }} ({{ acct.currency }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>CSV File</label>
+            <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Upload & Preview</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Transactions — FinanceFlow{% endblock %}
+{% block page_title %}Transactions{% endblock %}
+
+{% block top_actions %}
+<a href="{{ url_for('transactions.add') }}" class="btn btn-primary btn-sm">+ Add Transaction</a>
+<a href="{{ url_for('transactions.transfer') }}" class="btn btn-secondary btn-sm">↔ Transfer</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<form class="filters-bar" method="GET" action="{{ url_for('transactions.index') }}">
+    <select name="type" class="form-control">
+        <option value="">All Types</option>
+        <option value="income" {% if request.args.get('type')=='income' %}selected{% endif %}>Income</option>
+        <option value="expense" {% if request.args.get('type')=='expense' %}selected{% endif %}>Expense</option>
+    </select>
+    <select name="category_id" class="form-control">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+        <option value="{{ cat.category_id }}" {% if request.args.get('category_id')|int == cat.category_id %}selected{% endif %}>
+            {{ cat.icon }} {{ cat.name }}
+        </option>
+        {% endfor %}
+    </select>
+    <select name="account_id" class="form-control">
+        <option value="">All Accounts</option>
+        {% for acct in accounts %}
+        <option value="{{ acct.account_id }}" {% if request.args.get('account_id')|int == acct.account_id %}selected{% endif %}>
+            {{ acct.account_name }}
+        </option>
+        {% endfor %}
+    </select>
+    <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from','') }}" placeholder="From">
+    <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to','') }}" placeholder="To">
+    <input type="text" name="search" class="form-control" value="{{ request.args.get('search','') }}" placeholder="Search description...">
+    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+    <a href="{{ url_for('transactions.index') }}" class="btn btn-secondary btn-sm">Clear</a>
+</form>
+
+<!-- Transactions Table -->
+{% if transactions %}
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Account</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th style="text-align:right">Amount</th>
+                <th style="text-align:right">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for txn in transactions %}
+            <tr>
+                <td>{{ txn.transaction_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ txn.description or '—' }}</td>
+                <td>{{ txn.account.account_name if txn.account else '—' }}</td>
+                <td>{{ txn.category.icon if txn.category else '' }} {{ txn.category.name if txn.category else '—' }}</td>
+                <td><span class="badge badge-{{ txn.transaction_type }}">{{ txn.transaction_type }}</span></td>
+                <td style="text-align:right" class="font-bold {% if txn.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                    {{ '{:,.0f}'.format(txn.amount|float) }}
+                </td>
+                <td style="text-align:right">
+                    <a href="{{ url_for('transactions.edit', txn_id=txn.transaction_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('transactions.delete', txn_id=txn.transaction_id) }}"
+                          class="inline-form" data-confirm="Delete this transaction?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Del</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<div class="pagination">
+    {% if pagination.has_prev %}
+    <a href="{{ url_for('transactions.index', page=pagination.prev_num, **request.args) }}">‹</a>
+    {% endif %}
+    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+        <a href="{{ url_for('transactions.index', page=p, **request.args) }}" class="{% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+        {% else %}
+        <span>…</span>
+        {% endif %}
+    {% endfor %}
+    {% if pagination.has_next %}
+    <a href="{{ url_for('transactions.index', page=pagination.next_num, **request.args) }}">›</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">💳</div>
+    <div class="empty-state-text">No transactions found</div>
+    <a href="{{ url_for('transactions.add') }}" class="btn btn-primary">+ Add Transaction</a>
+</div>
+{% endif %}
+{% endblock %}

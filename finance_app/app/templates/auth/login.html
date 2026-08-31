@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Login — FinanceFlow{% endblock %}
+
+{% block content_auth %}
+<div class="auth-card">
+    <div class="auth-logo">
+        <span class="logo-icon">💸</span>
+        <span class="logo-text">FinanceFlow</span>
+    </div>
+    <h2 class="auth-title">Welcome Back</h2>
+
+    <a href="{{ url_for('auth.google_login') }}" class="btn btn-google">
+        🔵 Sign in with Google
+    </a>
+
+    <div class="auth-divider">or sign in with email</div>
+
+    <form method="POST" action="{{ url_for('auth.login') }}">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            <label for="email">Email</label>
+            {{ form.email(class="form-control", placeholder="you@example.com", id="email") }}
+            {% for error in form.email.errors %}
+            <div class="form-error">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            {{ form.password(class="form-control", placeholder="••••••••", id="password") }}
+            {% for error in form.password.errors %}
+            <div class="form-error">{{ error }}</div>
+            {% endfor %}
+        </div>
+        {{ form.submit(class="btn btn-primary", style="width:100%;justify-content:center;") }}
+    </form>
+
+    <div class="auth-footer">
+        Don't have an account? <a href="{{ url_for('auth.register') }}">Create one</a>
+    </div>
+</div>
+{% endblock %}

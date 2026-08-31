@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Register — FinanceFlow{% endblock %}
+
+{% block content_auth %}
+<div class="auth-card">
+    <div class="auth-logo">
+        <span class="logo-icon">💸</span>
+        <span class="logo-text">FinanceFlow</span>
+    </div>
+    <h2 class="auth-title">Create Your Account</h2>
+
+    <a href="{{ url_for('auth.google_login') }}" class="btn btn-google">
+        🔵 Sign up with Google
+    </a>
+
+    <div class="auth-divider">or register with email</div>
+
+    <form method="POST" action="{{ url_for('auth.register') }}">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            <label for="name">Full Name</label>
+            {{ form.name(class="form-control", placeholder="Nofil Ahmed", id="name") }}
+            {% for error in form.name.errors %}
+            <div class="form-error">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            {{ form.email(class="form-control", placeholder="you@example.com", id="email") }}
+            {% for error in form.email.errors %}
+            <div class="form-error">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            <label for="phone">Phone (optional)</label>
+            {{ form.phone(class="form-control", placeholder="0312-1234567", id="phone") }}
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            {{ form.password(class="form-control", placeholder="Min 6 characters", id="password") }}
+            {% for error in form.password.errors %}
+            <div class="form-error">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            <label for="confirm_password">Confirm Password</label>
+            {{ form.confirm_password(class="form-control", placeholder="••••••••", id="confirm_password") }}
+            {% for error in form.confirm_password.errors %}
+            <div class="form-error">{{ error }}</div>
+            {% endfor %}
+        </div>
+        {{ form.submit(class="btn btn-primary", style="width:100%;justify-content:center;") }}
+    </form>
+
+    <div class="auth-footer">
+        Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
+    </div>
+</div>
+{% endblock %}

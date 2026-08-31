@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Monthly Summary — FinanceFlow{% endblock %}
+{% block page_title %}Monthly Summary{% endblock %}
+
+{% block content %}
+{% if data %}
+<div class="table-container">
+    <table>
+        <thead><tr><th>Month</th><th style="text-align:right">Income</th><th style="text-align:right">Expenses</th><th style="text-align:right">Savings</th></tr></thead>
+        <tbody>
+            {% for row in data %}
+            <tr>
+                <td class="font-bold">{{ row.month }}</td>
+                <td style="text-align:right" class="text-success">{{ '{:,.0f}'.format(row.income) }}</td>
+                <td style="text-align:right" class="text-danger">{{ '{:,.0f}'.format(row.expense) }}</td>
+                <td style="text-align:right" class="font-bold {% if row.savings >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ '{:,.0f}'.format(row.savings) }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state"><div class="empty-state-text">No data yet</div></div>
+{% endif %}
+{% endblock %}

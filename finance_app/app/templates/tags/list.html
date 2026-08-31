@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Tags — FinanceFlow{% endblock %}
+{% block page_title %}Tags{% endblock %}
+
+{% block content %}
+<!-- Add Tag Form -->
+<div class="card mb-3">
+    <h3 class="card-title mb-2">Add New Tag</h3>
+    <form method="POST" action="{{ url_for('tags.add') }}" class="flex items-center gap-2 flex-wrap">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="name" class="form-control" placeholder="Tag name" required style="width:200px;">
+        <input type="color" name="color" value="#6366f1">
+        <button type="submit" class="btn btn-primary btn-sm">+ Add Tag</button>
+    </form>
+</div>
+
+{% if tags %}
+<div class="kpi-grid">
+    {% for tag in tags %}
+    <div class="card" style="border-left: 3px solid {{ tag.color }};">
+        <div class="flex justify-between items-center">
+            <div>
+                <span class="tag" style="border-color: {{ tag.color }}; color: {{ tag.color }}; background: {{ tag.color }}15;">{{ tag.name }}</span>
+                {% if not tag.user_id %}<span class="text-muted" style="font-size:0.75rem;margin-left:8px;">System</span>{% endif %}
+            </div>
+            {% if tag.user_id == current_user.user_id %}
+            <div class="flex gap-1">
+                <form method="POST" action="{{ url_for('tags.edit', tag_id=tag.tag_id) }}" class="flex items-center gap-1">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="text" name="name" value="{{ tag.name }}" class="form-control" style="width:120px;padding:6px 10px;">
+                    <input type="color" name="color" value="{{ tag.color }}">
+                    <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+                </form>
+                <form method="POST" action="{{ url_for('tags.delete', tag_id=tag.tag_id) }}" class="inline-form" data-confirm="Delete this tag?">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger btn-sm">Del</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">🏷️</div>
+    <div class="empty-state-text">No tags yet</div>
+</div>
+{% endif %}
+{% endblock %}

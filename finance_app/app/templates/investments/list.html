@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Investments — FinanceFlow{% endblock %}
+{% block page_title %}Portfolio{% endblock %}
+{% block top_actions %}<a href="{{ url_for('investments.add') }}" class="btn btn-primary btn-sm">+ Add Investment</a>{% endblock %}
+
+{% block content %}
+<!-- Portfolio Summary -->
+{% if summary %}
+<div class="kpi-grid mb-3">
+    {% for row in summary %}
+    <div class="kpi-card">
+        <div class="kpi-label">{{ row.asset_type | replace('_',' ') | title }} ({{ row.count }})</div>
+        <div class="kpi-value" style="font-size:1.2rem;">{{ '{:,.0f}'.format(row.total_value|float) }}</div>
+        {% set gain = (row.total_value|float) - (row.total_invested|float) %}
+        <div style="font-size:0.85rem;margin-top:4px;" class="{% if gain >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {% if gain >= 0 %}+{% endif %}{{ '{:,.0f}'.format(gain) }} ({{ '{:.1f}'.format(gain / (row.total_invested|float) * 100 if row.total_invested|float > 0 else 0) }}%)
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Investments Table -->
+{% if investments %}
+<div class="table-container">
+    <table>
+        <thead><tr><th>Asset</th><th>Type</th><th>Purchase</th><th>Current</th><th>Gain/Loss</th><th>Date</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody>
+            {% for inv in investments %}
+            <tr>
+                <td class="font-bold">{{ inv.asset_name }}</td>
+                <td><span class="badge badge-active">{{ inv.asset_type | replace('_',' ') | title }}</span></td>
+                <td>{{ '{:,.0f}'.format(inv.purchase_amount|float) }}</td>
+                <td>{{ '{:,.0f}'.format(inv.current_value|float) }}</td>
+                <td class="font-bold {% if inv.gain_loss >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {% if inv.gain_loss >= 0 %}+{% endif %}{{ '{:,.0f}'.format(inv.gain_loss) }} ({{ inv.gain_loss_pct }}%)
+                </td>
+                <td>{{ inv.purchase_date.strftime('%Y-%m-%d') }}</td>
+                <td>{% if inv.is_sold %}<span class="badge badge-inactive">Sold</span>{% else %}<span class="badge badge-active">Active</span>{% endif %}</td>
+                <td style="text-align:right">
+                    {% if not inv.is_sold %}<a href="{{ url_for('investments.sell', inv_id=inv.investment_id) }}" class="btn btn-success btn-sm">Sell</a>{% endif %}
+                    <a href="{{ url_for('investments.edit', inv_id=inv.investment_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('investments.delete', inv_id=inv.investment_id) }}" class="inline-form" data-confirm="Delete this investment?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Del</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">📈</div>
+    <div class="empty-state-text">No investments yet</div>
+    <a href="{{ url_for('investments.add') }}" class="btn btn-primary">+ Add Investment</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Recurring Transactions — FinanceFlow{% endblock %}
+{% block page_title %}Recurring Transactions{% endblock %}
+{% block top_actions %}
+<form method="POST" action="{{ url_for('recurring.process_due') }}" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-success btn-sm">⚡ Process Due</button>
+</form>
+<a href="{{ url_for('recurring.add') }}" class="btn btn-primary btn-sm">+ Add Recurring</a>
+{% endblock %}
+
+{% block content %}
+{% if items %}
+<div class="table-container">
+    <table>
+        <thead><tr><th>Description</th><th>Type</th><th>Amount</th><th>Frequency</th><th>Next Due</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td class="font-bold">{{ item.description or '—' }}</td>
+                <td><span class="badge badge-{{ item.transaction_type }}">{{ item.transaction_type }}</span></td>
+                <td>{{ '{:,.0f}'.format(item.amount|float) }}</td>
+                <td>{{ item.frequency | title }}</td>
+                <td class="{% if item.next_due_date <= today %}text-danger font-bold{% endif %}">
+                    {{ item.next_due_date.strftime('%Y-%m-%d') }}
+                    {% if item.next_due_date <= today %} ⚠{% endif %}
+                </td>
+                <td>
+                    {% if item.is_active %}<span class="badge badge-active">Active</span>
+                    {% else %}<span class="badge badge-inactive">Paused</span>{% endif %}
+                </td>
+                <td style="text-align:right">
+                    <form method="POST" action="{{ url_for('recurring.toggle', rec_id=item.recurring_id) }}" class="inline-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-secondary btn-sm">{% if item.is_active %}Pause{% else %}Resume{% endif %}</button>
+                    </form>
+                    <a href="{{ url_for('recurring.edit', rec_id=item.recurring_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('recurring.delete', rec_id=item.recurring_id) }}" class="inline-form" data-confirm="Delete this recurring transaction?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Del</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">🔄</div>
+    <div class="empty-state-text">No recurring transactions</div>
+    <a href="{{ url_for('recurring.add') }}" class="btn btn-primary">+ Add Recurring</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Budgets — FinanceFlow{% endblock %}
+{% block page_title %}Budgets{% endblock %}
+{% block top_actions %}<a href="{{ url_for('budgets.add') }}" class="btn btn-primary btn-sm">+ Set Budget</a>{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-2">Budget status for {{ current_month.strftime('%B %Y') }}</p>
+
+{% if budget_status %}
+<div class="kpi-grid">
+    {% for item in budget_status %}
+    <div class="card">
+        <div class="flex justify-between items-center mb-1">
+            <span class="font-bold">{{ item.category.icon }} {{ item.category.name }}</span>
+            {% if item.over_budget %}<span class="badge badge-expense">Over Budget</span>
+            {% elif item.near_budget %}<span class="badge badge-warning">Near Limit</span>
+            {% else %}<span class="badge badge-active">On Track</span>{% endif %}
+        </div>
+        <div class="kpi-value" style="font-size:1.3rem;" class="{% if item.over_budget %}text-danger{% endif %}">
+            {{ '{:,.0f}'.format(item.spent) }} <span class="text-muted" style="font-size:0.85rem;">/ {{ '{:,.0f}'.format(item.budget.monthly_limit|float) }}</span>
+        </div>
+        <div class="progress-bar mt-1">
+            <div class="progress-fill {% if item.over_budget %}danger{% elif item.near_budget %}warning{% else %}success{% endif %}"
+                 style="width: {{ [item.percentage, 100] | min }}%"></div>
+        </div>
+        <div class="flex justify-between mt-1" style="font-size:0.8rem;">
+            <span>{{ item.percentage }}% spent</span>
+            <span class="{% if item.remaining >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ '{:,.0f}'.format(item.remaining) }} remaining
+            </span>
+        </div>
+        <div class="flex gap-1 mt-2">
+            <a href="{{ url_for('budgets.edit', budget_id=item.budget.budget_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+            <form method="POST" action="{{ url_for('budgets.delete', budget_id=item.budget.budget_id) }}" class="inline-form" data-confirm="Delete this budget?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">📋</div>
+    <div class="empty-state-text">No budgets set for this month</div>
+    <a href="{{ url_for('budgets.add') }}" class="btn btn-primary">+ Set Budget</a>
+</div>
+{% endif %}
+{% endblock %}

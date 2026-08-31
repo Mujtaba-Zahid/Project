@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="FinanceFlow — Personal Finance Tracker. Track income, expenses, budgets, savings goals, and investments.">
+    <title>{% block title %}FinanceFlow{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">💸</span>
+                    <span class="logo-text">FinanceFlow</span>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                    <span class="toggle-icon">☰</span>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('dashboard') %}active{% endif %}">
+                    <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+                </a>
+                <a href="{{ url_for('transactions.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('transactions') %}active{% endif %}">
+                    <span class="nav-icon">💳</span><span class="nav-label">Transactions</span>
+                </a>
+                <a href="{{ url_for('accounts.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('accounts') %}active{% endif %}">
+                    <span class="nav-icon">🏦</span><span class="nav-label">Accounts</span>
+                </a>
+                <a href="{{ url_for('budgets.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('budgets') %}active{% endif %}">
+                    <span class="nav-icon">📋</span><span class="nav-label">Budgets</span>
+                </a>
+                <a href="{{ url_for('savings.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('savings') %}active{% endif %}">
+                    <span class="nav-icon">🎯</span><span class="nav-label">Savings Goals</span>
+                </a>
+                <a href="{{ url_for('investments.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('investments') %}active{% endif %}">
+                    <span class="nav-icon">📈</span><span class="nav-label">Investments</span>
+                </a>
+                <a href="{{ url_for('recurring.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('recurring') %}active{% endif %}">
+                    <span class="nav-icon">🔄</span><span class="nav-label">Recurring</span>
+                </a>
+                <a href="{{ url_for('tags.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('tags') %}active{% endif %}">
+                    <span class="nav-icon">🏷️</span><span class="nav-label">Tags</span>
+                </a>
+                <a href="{{ url_for('imports.upload') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('imports') %}active{% endif %}">
+                    <span class="nav-icon">📥</span><span class="nav-label">Import CSV</span>
+                </a>
+                <a href="{{ url_for('reports.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('reports') %}active{% endif %}">
+                    <span class="nav-icon">📄</span><span class="nav-label">Reports</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    {% if current_user.avatar_url %}
+                    <img src="{{ current_user.avatar_url }}" alt="avatar" class="user-avatar">
+                    {% else %}
+                    <div class="user-avatar-placeholder">{{ current_user.display_name[0] | upper }}</div>
+                    {% endif %}
+                    <span class="user-name">{{ current_user.display_name }}</span>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="nav-item logout-btn">
+                    <span class="nav-icon">🚪</span><span class="nav-label">Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="mobile-toggle" id="mobileToggle" aria-label="Open menu">☰</button>
+                <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                <div class="top-bar-actions">
+                    {% block top_actions %}{% endblock %}
+                </div>
+            </header>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-container">
+                {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">
+                    <span>{{ message }}</span>
+                    <button class="flash-close" onclick="this.parentElement.remove()">✕</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <div class="content-area">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    {% else %}
+    <div class="auth-layout">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">
+                <span>{{ message }}</span>
+                <button class="flash-close" onclick="this.parentElement.remove()">✕</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% block content_auth %}{% endblock %}
+    </div>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

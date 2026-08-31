@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Preview Import — FinanceFlow{% endblock %}
+{% block page_title %}Preview & Map Columns{% endblock %}
+
+{% block content %}
+<div class="card mb-3">
+    <p>Found <strong>{{ total_rows }}</strong> rows in CSV. Showing first 20 rows for preview.</p>
+    <p class="text-muted">Map each CSV column to the correct field, then confirm the import.</p>
+</div>
+
+<!-- Preview Table -->
+<div class="table-container mb-3">
+    <table>
+        <thead>
+            <tr>
+                {% for h in headers %}
+                <th>{{ h }} <span class="text-muted">(col {{ loop.index0 }})</span></th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                {% for cell in row %}
+                <td>{{ cell }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Column Mapping Form -->
+<div class="form-card card">
+    <h3 class="card-title mb-2">Map Columns</h3>
+    <form method="POST" action="{{ url_for('imports.confirm') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Date Column</label>
+                <select name="col_date" class="form-control" required>
+                    {% for h in headers %}
+                    <option value="{{ loop.index0 }}" {% if 'date' in h|lower %}selected{% endif %}>{{ loop.index0 }}: {{ h }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Amount Column</label>
+                <select name="col_amount" class="form-control" required>
+                    {% for h in headers %}
+                    <option value="{{ loop.index0 }}" {% if 'amount' in h|lower %}selected{% endif %}>{{ loop.index0 }}: {{ h }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Type Column (optional)</label>
+                <select name="col_type" class="form-control">
+                    <option value="">-- None --</option>
+                    {% for h in headers %}
+                    <option value="{{ loop.index0 }}" {% if 'type' in h|lower %}selected{% endif %}>{{ loop.index0 }}: {{ h }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Description Column (optional)</label>
+                <select name="col_description" class="form-control">
+                    <option value="">-- None --</option>
+                    {% for h in headers %}
+                    <option value="{{ loop.index0 }}" {% if 'desc' in h|lower or 'narr' in h|lower %}selected{% endif %}>{{ loop.index0 }}: {{ h }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary">Confirm Import ({{ total_rows }} rows)</button>
+            <a href="{{ url_for('imports.upload') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

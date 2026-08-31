@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — FinanceFlow{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}
+
+{% block top_actions %}
+<a href="{{ url_for('transactions.add') }}" class="btn btn-primary btn-sm">+ Add Transaction</a>
+<a href="{{ url_for('transactions.transfer') }}" class="btn btn-secondary btn-sm">↔ Transfer</a>
+{% endblock %}
+
+{% block content %}
+<!-- KPI Cards -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-icon">🏦</div>
+        <div class="kpi-label">Total Balance</div>
+        <div class="kpi-value {% if total_balance >= 0 %}positive{% else %}negative{% endif %}">
+            {{ '{:,.0f}'.format(total_balance) }} PKR
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-label">Monthly Income</div>
+        <div class="kpi-value positive">{{ '{:,.0f}'.format(monthly_income) }} PKR</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon">📉</div>
+        <div class="kpi-label">Monthly Expenses</div>
+        <div class="kpi-value negative">{{ '{:,.0f}'.format(monthly_expense) }} PKR</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon">💎</div>
+        <div class="kpi-label">Net Worth</div>
+        <div class="kpi-value {% if net_worth >= 0 %}positive{% else %}negative{% endif %}">
+            {{ '{:,.0f}'.format(net_worth) }} PKR
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="grid-2 mb-3">
+    <div class="chart-card">
+        <div class="card-header">
+            <h3 class="card-title">Income vs Expenses (6 months)</h3>
+        </div>
+        <canvas id="incomeExpenseChart"></canvas>
+    </div>
+    <div class="chart-card">
+        <div class="card-header">
+            <h3 class="card-title">Spending by Category</h3>
+        </div>
+        <canvas id="spendingCategoryChart"></canvas>
+    </div>
+</div>
+
+<!-- Budget Alerts & Savings -->
+<div class="grid-2 mb-3">
+    <!-- Budget Status -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Budget Status</h3>
+            <a href="{{ url_for('budgets.index') }}" class="btn btn-secondary btn-sm">View All</a>
+        </div>
+        {% if budget_status %}
+        {% for item in budget_status %}
+        <div style="margin-bottom: 14px;">
+            <div class="flex justify-between items-center mb-1">
+                <span>{{ item.category.icon }} {{ item.category.name }}</span>
+                <span class="{% if item.over_budget %}text-danger{% elif item.near_budget %}text-warning{% else %}text-success{% endif %}">
+                    {{ '{:,.0f}'.format(item.spent) }} / {{ '{:,.0f}'.format(item.budget.monthly_limit|float) }}
+                </span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill {% if item.over_budget %}danger{% elif item.near_budget %}warning{% else %}success{% endif %}"
+                     style="width: {{ [item.percentage, 100] | min }}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state" style="padding: 30px;">
+            <div class="empty-state-text">No budgets set for this month</div>
+            <a href="{{ url_for('budgets.add') }}" class="btn btn-primary btn-sm">+ Set Budget</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Savings Goals -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Savings Goals</h3>
+            <a href="{{ url_for('savings.index') }}" class="btn btn-secondary btn-sm">View All</a>
+        </div>
+        {% if savings_goals %}
+        {% for goal in savings_goals %}
+        <div style="margin-bottom: 14px;">
+            <div class="flex justify-between items-center mb-1">
+                <span class="font-bold">🎯 {{ goal.goal_name }}</span>
+                <span class="text-muted">{{ goal.progress_pct }}%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ [goal.progress_pct, 100] | min }}%"></div>
+            </div>
+            <div class="flex justify-between mt-1" style="font-size: 0.8rem;">
+                <span class="text-success">{{ '{:,.0f}'.format(goal.saved_amount|float) }}</span>
+                <span class="text-muted">/ {{ '{:,.0f}'.format(goal.target_amount|float) }}</span>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state" style="padding: 30px;">
+            <div class="empty-state-text">No active savings goals</div>
+            <a href="{{ url_for('savings.add') }}" class="btn btn-primary btn-sm">+ Create Goal</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Recent Transactions</h3>
+        <a href="{{ url_for('transactions.index') }}" class="btn btn-secondary btn-sm">View All</a>
+    </div>
+    {% if recent_transactions %}
+    <div class="table-container" style="border: none;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th style="text-align:right">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for txn in recent_transactions %}
+                <tr>
+                    <td>{{ txn.transaction_date.strftime('%b %d') }}</td>
+                    <td>{{ txn.description or '—' }}</td>
+                    <td>{{ txn.category.icon if txn.category else '' }} {{ txn.category.name if txn.category else '—' }}</td>
+                    <td><span class="badge badge-{{ txn.transaction_type }}">{{ txn.transaction_type }}</span></td>
+                    <td style="text-align:right" class="font-bold {% if txn.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                        {% if txn.transaction_type == 'income' %}+{% else %}-{% endif %}{{ '{:,.0f}'.format(txn.amount|float) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">💳</div>
+        <div class="empty-state-text">No transactions yet</div>
+        <a href="{{ url_for('transactions.add') }}" class="btn btn-primary">+ Add Your First Transaction</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    initIncomeExpenseChart('incomeExpenseChart', '{{ url_for("dashboard.chart_income_expense") }}');
+    initSpendingCategoryChart('spendingCategoryChart', '{{ url_for("dashboard.chart_spending_category") }}');
+});
+</script>
+{% endblock %}

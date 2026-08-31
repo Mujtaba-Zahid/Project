@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}{{ account.account_name }} — FinanceFlow{% endblock %}
+{% block page_title %}{{ account.account_name }}{% endblock %}
+
+{% block top_actions %}
+<span class="badge badge-{{ 'active' if account.is_active else 'inactive' }}">{{ 'Active' if account.is_active else 'Inactive' }}</span>
+<a href="{{ url_for('accounts.edit', account_id=account.account_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+<form method="POST" action="{{ url_for('accounts.delete', account_id=account.account_id) }}" class="inline-form" data-confirm="Delete this account?">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="kpi-grid" style="max-width: 400px;">
+    <div class="kpi-card">
+        <div class="kpi-label">Balance</div>
+        <div class="kpi-value {% if account.balance >= 0 %}positive{% else %}negative{% endif %}">
+            {{ '{:,.0f}'.format(account.balance) }} {{ account.currency }}
+        </div>
+    </div>
+</div>
+
+<div class="section-header">
+    <h3 class="section-title">Transaction History</h3>
+</div>
+
+{% if transactions.items %}
+<div class="table-container">
+    <table>
+        <thead><tr><th>Date</th><th>Description</th><th>Type</th><th style="text-align:right">Amount</th></tr></thead>
+        <tbody>
+            {% for txn in transactions.items %}
+            <tr>
+                <td>{{ txn.transaction_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ txn.description or '—' }}</td>
+                <td><span class="badge badge-{{ txn.transaction_type }}">{{ txn.transaction_type }}</span></td>
+                <td style="text-align:right" class="font-bold {% if txn.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                    {{ '{:,.0f}'.format(txn.amount|float) }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if transactions.pages > 1 %}
+<div class="pagination">
+    {% for p in transactions.iter_pages() %}
+        {% if p %}<a href="{{ url_for('accounts.detail', account_id=account.account_id, page=p) }}" class="{% if p == transactions.page %}active{% endif %}">{{ p }}</a>{% else %}<span>…</span>{% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+{% else %}
+<div class="empty-state"><div class="empty-state-text">No transactions for this account</div></div>
+{% endif %}
+{% endblock %}

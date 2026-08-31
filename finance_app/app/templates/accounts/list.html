@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Accounts — FinanceFlow{% endblock %}
+{% block page_title %}Accounts{% endblock %}
+{% block top_actions %}
+<a href="{{ url_for('accounts.add') }}" class="btn btn-primary btn-sm">+ Add Account</a>
+{% endblock %}
+
+{% block content %}
+{% if accounts %}
+<div class="kpi-grid">
+    {% for account in accounts %}
+    <a href="{{ url_for('accounts.detail', account_id=account.account_id) }}" style="text-decoration:none;color:inherit;">
+        <div class="account-card">
+            <div class="account-icon">
+                {% if account.account_type == 'cash' %}💵
+                {% elif account.account_type == 'bank' %}🏦
+                {% elif account.account_type == 'credit' %}💳
+                {% else %}👛{% endif %}
+            </div>
+            <div class="account-details">
+                <div class="account-name">{{ account.account_name }}</div>
+                <div class="account-type">{{ account.account_type }} · {{ account.currency }}</div>
+            </div>
+            <div class="account-balance {% if account.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ '{:,.0f}'.format(account.balance) }}
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">🏦</div>
+    <div class="empty-state-text">No accounts yet</div>
+    <a href="{{ url_for('accounts.add') }}" class="btn btn-primary">+ Add Account</a>
+</div>
+{% endif %}
+{% endblock %}
