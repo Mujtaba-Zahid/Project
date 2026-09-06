@@ -45,7 +45,7 @@ def get_budget_status(user_id, month=None):
 
         results.append({
             'budget': budget,
-            'category': Category.query.get(budget.category_id),
+            'category': db.session.get(Category, budget.category_id),
             'spent': spent,
             'remaining': limit - spent,
             'percentage': round(spent / limit * 100, 1) if limit > 0 else 0,
@@ -73,7 +73,7 @@ def check_and_alert(user_id, category_id, month=None):
     threshold = float(budget.alert_threshold)
 
     if spent >= (limit * threshold) and not budget.alert_sent:
-        category = Category.query.get(category_id)
+        category = db.session.get(Category, category_id)
         cat_name = category.name if category else 'Unknown'
 
         create_notification(

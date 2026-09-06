@@ -40,6 +40,13 @@ class Investment(db.Model):
         return float(self.sold_amount) - float(self.purchase_amount)
 
     @property
+    def realized_gain_loss_pct(self):
+        """Realized gain/loss as percentage (only if sold)."""
+        if self.sold_amount is None or not self.purchase_amount or float(self.purchase_amount) == 0:
+            return None
+        return round(self.realized_gain_loss / float(self.purchase_amount) * 100, 2)
+
+    @property
     def is_sold(self):
         return self.sold_date is not None
 

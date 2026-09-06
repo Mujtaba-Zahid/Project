@@ -3,8 +3,6 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
 {% endblock %}
 
 {% block top_actions %}
@@ -163,6 +161,8 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     initIncomeExpenseChart('incomeExpenseChart', '{{ url_for("dashboard.chart_income_expense") }}');

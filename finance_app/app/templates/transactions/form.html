@@ -8,6 +8,12 @@
         {{ form.hidden_tag() }}
 
         {% if is_transfer is defined and is_transfer %}
+        {% if not form.from_account_id.choices or form.from_account_id.choices|length < 2 %}
+        <div class="flash flash-warning" style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <span>⚠️ You need at least two active accounts to perform fund transfers.</span>
+            <a href="{{ url_for('accounts.add') }}" class="btn btn-primary btn-sm">+ Add Account</a>
+        </div>
+        {% endif %}
         <div class="form-group">
             <label>{{ form.from_account_id.label.text }}</label>
             {{ form.from_account_id(class="form-control") }}
@@ -26,6 +32,12 @@
             {{ form.notes(class="form-control", placeholder="Optional notes") }}
         </div>
         {% else %}
+        {% if not form.account_id.choices %}
+        <div class="flash flash-warning" style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <span>⚠️ You need an active account before you can record transactions.</span>
+            <a href="{{ url_for('accounts.add') }}" class="btn btn-primary btn-sm">+ Add Account</a>
+        </div>
+        {% endif %}
         <div class="grid-2">
             <div class="form-group">
                 <label>{{ form.account_id.label.text }}</label>

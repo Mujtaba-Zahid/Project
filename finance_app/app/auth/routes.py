@@ -9,7 +9,17 @@ from ..models.tag import Tag
 
 
 def _seed_defaults_for_user(user):
-    """Create default categories and tags for a new user."""
+    """Create default account, categories and tags for a new user."""
+    from ..models.account import Account
+    default_account = Account(
+        user_id=user.user_id,
+        account_name='Primary Checking',
+        account_type='bank',
+        currency=user.preferred_currency or 'PKR',
+        is_active=True,
+    )
+    db.session.add(default_account)
+
     default_categories = [
         ('Salary', 'income', '💰'),
         ('Freelance', 'income', '💻'),
@@ -44,13 +54,16 @@ def login():
 
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
-        if user and user.check_password(form.password.data):
-            login_user(user)
+        email = (form.email.data or '').strip().lower()
+        password = form.password.data or ''
+        user = User.query.filter(db.func.lower(User.email) == email).first()
+        if user and (user.check_password(password) or user.check_password(password.strip())):
+            remember = form.remember.data if hasattr(form, 'remember') else True
+            login_user(user, remember=remember)
             next_page = request.args.get('next')
-            flash('Welcome back!', 'success')
+            flash(f'Welcome back, {user.display_name}!', 'success')
             return redirect(next_page or url_for('dashboard.index'))
-        flash('Invalid email or password.', 'danger')
+        flash('Invalid email or password. Please check your credentials or use the demo account below.', 'danger')
 
     return render_template('auth/login.html', form=form)
 
@@ -62,15 +75,16 @@ def register():
 
     form = RegisterForm()
     if form.validate_on_submit():
-        existing = User.query.filter_by(email=form.email.data).first()
+        email = (form.email.data or '').strip().lower()
+        existing = User.query.filter(db.func.lower(User.email) == email).first()
         if existing:
             flash('An account with this email already exists.', 'danger')
             return render_template('auth/register.html', form=form)
 
         user = User(
-            name=form.name.data,
-            email=form.email.data,
-            phone=form.phone.data,
+            name=form.name.data.strip(),
+            email=email,
+            phone=form.phone.data.strip() if form.phone.data else None,
         )
         user.set_password(form.password.data)
         db.session.add(user)
@@ -79,7 +93,7 @@ def register():
         _seed_defaults_for_user(user)
         db.session.commit()
 
-        login_user(user)
+        login_user(user, remember=True)
         flash('Account created successfully!', 'success')
         return redirect(url_for('dashboard.index'))
 
@@ -88,8 +102,16 @@ def register():
 
 @auth_bp.route('/login/google')
 def google_login():
-    redirect_uri = url_for('auth.google_callback', _external=True)
-    return oauth.google.authorize_redirect(redirect_uri)
+    try:
+        google = oauth.create_client('google')
+        if google is None:
+            flash('Google Sign-In is not configured. Use email login instead.', 'warning')
+            return redirect(url_for('auth.login'))
+        redirect_uri = url_for('auth.google_callback', _external=True)
+        return google.authorize_redirect(redirect_uri)
+    except Exception:
+        flash('Google Sign-In is not configured. Use email login instead.', 'warning')
+        return redirect(url_for('auth.login'))
 
 
 @auth_bp.route('/callback')

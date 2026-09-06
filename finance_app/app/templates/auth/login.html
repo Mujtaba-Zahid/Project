@@ -9,28 +9,51 @@
     </div>
     <h2 class="auth-title">Welcome Back</h2>
 
+    {% if config.GOOGLE_CLIENT_ID %}
     <a href="{{ url_for('auth.google_login') }}" class="btn btn-google">
         🔵 Sign in with Google
     </a>
-
     <div class="auth-divider">or sign in with email</div>
+    {% endif %}
 
-    <form method="POST" action="{{ url_for('auth.login') }}">
+    <!-- Quick Demo Helper -->
+    <div class="demo-helper-box">
+        <div class="demo-helper-header">
+            <span>⚡ Demo Account</span>
+            <button type="button" class="demo-fill-btn" onclick="fillDemoCredentials()">Auto-fill</button>
+        </div>
+        <div class="demo-helper-info">
+            <code>nofil@email.com</code> &bull; <code>password123</code>
+        </div>
+    </div>
+
+    <form method="POST">
         {{ form.hidden_tag() }}
         <div class="form-group">
             <label for="email">Email</label>
-            {{ form.email(class="form-control", placeholder="you@example.com", id="email") }}
+            {{ form.email(class="form-control", placeholder="you@example.com", id="email", autofocus=true) }}
             {% for error in form.email.errors %}
             <div class="form-error">{{ error }}</div>
             {% endfor %}
         </div>
         <div class="form-group">
-            <label for="password">Password</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label for="password" style="margin-bottom: 0;">Password</label>
+                <button type="button" onclick="togglePasswordVisibility()" style="background: none; border: none; color: var(--accent-primary); font-size: 0.8rem; cursor: pointer;">
+                    <span id="pwToggleText">👁️ Show</span>
+                </button>
+            </div>
             {{ form.password(class="form-control", placeholder="••••••••", id="password") }}
             {% for error in form.password.errors %}
             <div class="form-error">{{ error }}</div>
             {% endfor %}
         </div>
+        {% if form.remember is defined %}
+        <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            {{ form.remember(id="remember") }}
+            <label for="remember" style="margin-bottom: 0; font-size: 0.85rem; cursor: pointer; color: var(--text-secondary);">Remember me on this device</label>
+        </div>
+        {% endif %}
         {{ form.submit(class="btn btn-primary", style="width:100%;justify-content:center;") }}
     </form>
 
@@ -38,4 +61,23 @@
         Don't have an account? <a href="{{ url_for('auth.register') }}">Create one</a>
     </div>
 </div>
+
+<script>
+function fillDemoCredentials() {
+    document.getElementById('email').value = 'nofil@email.com';
+    document.getElementById('password').value = 'password123';
+}
+
+function togglePasswordVisibility() {
+    const pwInput = document.getElementById('password');
+    const toggleText = document.getElementById('pwToggleText');
+    if (pwInput.type === 'password') {
+        pwInput.type = 'text';
+        toggleText.textContent = '🙈 Hide';
+    } else {
+        pwInput.type = 'password';
+        toggleText.textContent = '👁️ Show';
+    }
+}
+</script>
 {% endblock %}
