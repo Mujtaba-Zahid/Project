@@ -49,5 +49,15 @@ class User(UserMixin, db.Model):
     def display_name(self):
         return self.name or self.email.split('@')[0]
 
+    @property
+    def groq_api_key(self):
+        if self.financial_profile:
+            return self.financial_profile.groq_api_key
+        return None
+
+    @property
+    def has_groq_key(self) -> bool:
+        return bool(self.groq_api_key and self.groq_api_key.strip())
+
     def __repr__(self):
         return f'<User {self.user_id}: {self.email}>'

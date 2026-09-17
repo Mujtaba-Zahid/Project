@@ -256,11 +256,162 @@
     }
     .empty-chat-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
 
-    /* ── Responsive ────────────────────────────────────────────────── */
-    @media (max-width: 768px) {
-        .ai-hero, .ai-grid-2 { grid-template-columns: 1fr; }
-        .health-score-card { flex-direction: column; text-align: center; }
-        .alert-cards { grid-template-columns: 1fr; }
+    /* ── Groq Status & Modal Styles ────────────────────────────────── */
+    .groq-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.76rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .groq-status-badge.groq-connected {
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        color: #34d399;
+    }
+    .groq-status-badge.groq-fallback {
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        color: #fbbf24;
+    }
+    .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .status-dot.green {
+        background: #10b981;
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+        animation: pulse-green 2s infinite;
+    }
+    .status-dot.amber {
+        background: #f59e0b;
+        box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+    }
+    @keyframes pulse-green {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* Modal Backdrop & Dialog */
+    .modal-backdrop-custom {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .modal-backdrop-custom.active {
+        display: flex;
+    }
+    .modal-card-custom {
+        background: #131726;
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), 0 0 30px rgba(99, 102, 241, 0.15);
+        border-radius: 18px;
+        width: 100%;
+        max-width: 520px;
+        padding: 26px;
+        position: relative;
+        animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalFadeIn {
+        from { opacity: 0; transform: scale(0.94) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-header-custom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 12px;
+    }
+    .modal-close-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 1.25rem;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    .modal-close-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+    }
+    .api-input-group {
+        position: relative;
+        display: flex;
+        align-items: center;
+        margin-top: 6px;
+    }
+    .api-input-group input {
+        width: 100%;
+        padding-right: 44px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        padding: 10px 14px;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+    }
+    .api-input-group input:focus {
+        outline: none;
+        border-color: rgba(99, 102, 241, 0.6);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+    .password-toggle-btn {
+        position: absolute;
+        right: 10px;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 6px;
+        font-size: 1rem;
+    }
+    .password-toggle-btn:hover { color: var(--text-primary); }
+    .api-status-banner {
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 0.84rem;
+        margin-top: 14px;
+        display: none;
+    }
+    .api-status-banner.success {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(16, 185, 129, 0.15);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: #34d399;
+    }
+    .api-status-banner.error {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #f87171;
+    }
+    .api-status-banner.loading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(99, 102, 241, 0.15);
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        color: #a5b4fc;
     }
 </style>
 {% endblock %}
@@ -306,8 +457,22 @@
                     <div class="metric-value">{{ '%.0f'|format(profile.savings_rate * 100) }}%</div>
                 </div>
             </div>
-            <div class="profile-actions">
+            <div class="profile-actions" style="display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap;">
                 <a href="{{ url_for('ai.profile') }}" class="btn btn-secondary btn-sm">✏️ Edit Profile</a>
+                <button type="button" class="btn btn-primary btn-sm" id="openApiKeyModalBtn" onclick="openApiKeyModal()" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <span>🔑</span> <span>Groq API Key</span>
+                </button>
+                <div id="headerStatusBadgeContainer">
+                    {% if groq_status.has_api_key %}
+                    <span class="groq-status-badge groq-connected" id="groqStatusBadge" title="Connected to Groq via {{ groq_status.source }} using {{ groq_status.preferred_model }}">
+                        <span class="status-dot green"></span> Connected ({{ groq_status.preferred_model.split('-')[1]|default('70b')|upper }})
+                    </span>
+                    {% else %}
+                    <span class="groq-status-badge groq-fallback" id="groqStatusBadge" title="No custom Groq key. Using smart offline Pakistani fallback advice.">
+                        <span class="status-dot amber"></span> Offline Fallback Mode
+                    </span>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -429,9 +594,17 @@
 <!-- ── AI Chat Panel ───────────────────────────────────────────────── -->
 <div class="chat-panel">
     <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">💬 AI Financial Chat</h3>
-            <button onclick="clearChat()" class="btn btn-secondary btn-sm">🗑️ Clear</button>
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <h3 class="card-title" style="margin: 0;">💬 AI Financial Chat</h3>
+                <span id="chatModelIndicator" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3);">
+                    {{ groq_status.preferred_model }}
+                </span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="openApiKeyModal()" class="btn btn-secondary btn-sm" title="Configure Groq API Key">🔑 Key Settings</button>
+                <button onclick="clearChat()" class="btn btn-secondary btn-sm">🗑️ Clear</button>
+            </div>
         </div>
 
         <div class="quick-chips">
@@ -464,6 +637,76 @@
         </div>
     </div>
 </div>
+
+<!-- ── Groq API Key Modal ─────────────────────────────────────────── -->
+<div class="modal-backdrop-custom" id="apiKeyModal" onclick="if(event.target===this)closeApiKeyModal()">
+    <div class="modal-card-custom" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-header-custom">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.4rem;">🔑</span>
+                <div>
+                    <h3 id="modalTitle" style="margin: 0; font-size: 1.15rem; font-weight: 700;">Configure Groq API Key</h3>
+                    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 2px;">Connect ultra-fast Llama 3 models directly to your models</div>
+                </div>
+            </div>
+            <button type="button" class="modal-close-btn" onclick="closeApiKeyModal()" aria-label="Close modal">✕</button>
+        </div>
+
+        <!-- Informational banner -->
+        <div style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);">
+            <div style="color: #a5b4fc; font-weight: 600; margin-bottom: 4px;">⚡ Real-time Pakistani Financial Reasoning</div>
+            Your key connects the Groq LLM middleware directly to your transactions, budgets, and financial profile. 
+            Keys are stored securely. You can get a <strong>free</strong> key with ~30 requests/min at 
+            <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color: #818cf8; text-decoration: underline;">console.groq.com/keys ↗</a>.
+        </div>
+
+        <form id="apiKeyForm" onsubmit="event.preventDefault(); saveApiKey();">
+            <!-- API Key Input -->
+            <div style="margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label for="groqApiKeyInput" style="font-size: 0.85rem; font-weight: 600;">Groq API Key</label>
+                    <span id="savedKeyTag" style="font-size: 0.74rem; color: #34d399; {% if not groq_status.masked_key %}display: none;{% endif %}">
+                        Saved: <span id="savedKeyText">{{ groq_status.masked_key }}</span>
+                    </span>
+                </div>
+                <div class="api-input-group">
+                    <input type="password" id="groqApiKeyInput" placeholder="gsk_..." autocomplete="off">
+                    <button type="button" class="password-toggle-btn" onclick="toggleApiKeyVisibility()" title="Show/Hide Key" aria-label="Toggle password visibility">
+                        <span id="eyeIcon">👁️</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Model Selection -->
+            <div style="margin-bottom: 18px;">
+                <label for="preferredModelSelect" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 6px;">Preferred Model</label>
+                <select id="preferredModelSelect" style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 10px 14px; color: var(--text-primary); font-size: 0.88rem; outline: none;">
+                    {% for m in supported_models %}
+                    <option value="{{ m.id }}" {% if m.id == groq_status.preferred_model %}selected{% endif %}>
+                        {{ m.name }} — {{ m.desc }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Feedback / Alert Banner -->
+            <div id="apiKeyTestAlert" class="api-status-banner"></div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" id="deleteKeyBtn" onclick="deleteApiKey()" style="color: #f87171; border-color: rgba(239,68,68,0.3); margin-right: auto; {% if not groq_status.has_api_key or groq_status.source != 'user' %}display: none;{% endif %}">
+                    🗑️ Remove Key
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="testKeyBtn" onclick="testApiKey()">
+                    ⚡ Test Connection
+                </button>
+                <button type="submit" class="btn btn-primary btn-sm" id="saveKeyBtn">
+                    💾 Save & Connect
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -479,7 +722,6 @@ function scrollToBottom() {
 scrollToBottom();
 
 function addMessage(role, content) {
-    // Remove empty state if present
     const empty = chatMessages.querySelector('.empty-chat');
     if (empty) empty.remove();
 
@@ -557,5 +799,176 @@ async function trainModels() {
     btn.disabled = false;
     btn.textContent = '🔄 Retrain';
 }
+
+// ── Groq API Key Modal & Middleware Handlers ─────────────────────────────
+const apiKeyModal = document.getElementById('apiKeyModal');
+const groqApiKeyInput = document.getElementById('groqApiKeyInput');
+const preferredModelSelect = document.getElementById('preferredModelSelect');
+const apiKeyTestAlert = document.getElementById('apiKeyTestAlert');
+const testKeyBtn = document.getElementById('testKeyBtn');
+const saveKeyBtn = document.getElementById('saveKeyBtn');
+const deleteKeyBtn = document.getElementById('deleteKeyBtn');
+const savedKeyTag = document.getElementById('savedKeyTag');
+const savedKeyText = document.getElementById('savedKeyText');
+const groqStatusBadge = document.getElementById('groqStatusBadge');
+const chatModelIndicator = document.getElementById('chatModelIndicator');
+
+function openApiKeyModal() {
+    apiKeyModal.classList.add('active');
+    apiKeyTestAlert.style.display = 'none';
+    groqApiKeyInput.focus();
+}
+
+function closeApiKeyModal() {
+    apiKeyModal.classList.remove('active');
+    apiKeyTestAlert.style.display = 'none';
+}
+
+function toggleApiKeyVisibility() {
+    const isPassword = groqApiKeyInput.type === 'password';
+    groqApiKeyInput.type = isPassword ? 'text' : 'password';
+    document.getElementById('eyeIcon').textContent = isPassword ? '🙈' : '👁️';
+}
+
+function setModalAlert(type, message) {
+    apiKeyTestAlert.className = 'api-status-banner ' + type;
+    apiKeyTestAlert.textContent = message;
+    apiKeyTestAlert.style.display = 'flex';
+}
+
+async function testApiKey() {
+    const key = groqApiKeyInput.value.trim();
+    testKeyBtn.disabled = true;
+    testKeyBtn.textContent = '⏳ Testing...';
+    setModalAlert('loading', 'Testing connection to Groq API servers...');
+
+    try {
+        const resp = await fetch('{{ url_for("ai.api_key_test") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({ api_key: key }),
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.success) {
+            setModalAlert('success', `✅ Connection verified! Groq API is live (${data.latency_ms}ms response).`);
+        } else {
+            setModalAlert('error', `❌ ${data.error || 'Connection failed'}`);
+        }
+    } catch (err) {
+        setModalAlert('error', '❌ Network error while contacting server.');
+    }
+
+    testKeyBtn.disabled = false;
+    testKeyBtn.textContent = '⚡ Test Connection';
+}
+
+async function saveApiKey() {
+    const key = groqApiKeyInput.value.trim();
+    const model = preferredModelSelect.value;
+
+    if (!key) {
+        setModalAlert('error', 'Please enter your Groq API key before saving.');
+        return;
+    }
+
+    saveKeyBtn.disabled = true;
+    saveKeyBtn.textContent = '⏳ Saving...';
+    setModalAlert('loading', 'Verifying and linking key with financial models...');
+
+    try {
+        const resp = await fetch('{{ url_for("ai.api_key_save") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({
+                api_key: key,
+                preferred_model: model,
+                validate: true
+            }),
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.status === 'ok') {
+            setModalAlert('success', '✅ ' + data.message);
+            groqApiKeyInput.value = '';
+
+            // Update UI elements dynamically
+            if (savedKeyTag && savedKeyText) {
+                savedKeyText.textContent = data.masked_key;
+                savedKeyTag.style.display = 'inline';
+            }
+            if (deleteKeyBtn) {
+                deleteKeyBtn.style.display = 'inline-block';
+            }
+            if (chatModelIndicator) {
+                chatModelIndicator.textContent = data.preferred_model;
+            }
+            if (groqStatusBadge) {
+                groqStatusBadge.className = 'groq-status-badge groq-connected';
+                const modelShort = (data.preferred_model.split('-')[1] || '70b').toUpperCase();
+                groqStatusBadge.innerHTML = `<span class="status-dot green"></span> Connected (${modelShort})`;
+            }
+
+            setTimeout(() => {
+                closeApiKeyModal();
+            }, 1200);
+        } else {
+            setModalAlert('error', `❌ ${data.error || 'Failed to save key'}`);
+        }
+    } catch (err) {
+        setModalAlert('error', '❌ Network error while saving key.');
+    }
+
+    saveKeyBtn.disabled = false;
+    saveKeyBtn.textContent = '💾 Save & Connect';
+}
+
+async function deleteApiKey() {
+    if (!confirm('Are you sure you want to remove your custom Groq API key? The advisor will revert to offline fallback mode.')) {
+        return;
+    }
+
+    deleteKeyBtn.disabled = true;
+    try {
+        const resp = await fetch('{{ url_for("ai.api_key_delete") }}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken },
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.status === 'ok') {
+            setModalAlert('success', 'Key removed. Reverted to offline fallback mode.');
+            if (savedKeyTag) savedKeyTag.style.display = 'none';
+            deleteKeyBtn.style.display = 'none';
+
+            if (groqStatusBadge) {
+                groqStatusBadge.className = 'groq-status-badge groq-fallback';
+                groqStatusBadge.innerHTML = `<span class="status-dot amber"></span> Offline Fallback Mode`;
+            }
+
+            setTimeout(() => {
+                closeApiKeyModal();
+            }, 1000);
+        } else {
+            setModalAlert('error', 'Failed to remove key.');
+        }
+    } catch (err) {
+        setModalAlert('error', 'Network error.');
+    }
+    deleteKeyBtn.disabled = false;
+}
+
+// Close on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && apiKeyModal.classList.contains('active')) {
+        closeApiKeyModal();
+    }
+});
 </script>
 {% endblock %}

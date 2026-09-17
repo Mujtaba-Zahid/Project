@@ -42,6 +42,10 @@ class FinancialProfile(db.Model):
     # --- Computed score (0–100 composite) ---
     financial_advice_score = db.Column(db.Integer, default=50)
 
+    # --- AI / Groq LLM Configuration ---
+    groq_api_key = db.Column(db.String(255), nullable=True)
+    preferred_model = db.Column(db.String(100), default='llama-3.3-70b-versatile')
+
     # --- Metadata ---
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -86,6 +90,19 @@ class FinancialProfile(db.Model):
         self.financial_advice_score = int(round(score))
         return self.financial_advice_score
 
+    @property
+    def has_custom_api_key(self) -> bool:
+        return bool(self.groq_api_key and self.groq_api_key.strip())
+
+    @property
+    def masked_api_key(self) -> str:
+        if not self.has_custom_api_key:
+            return ""
+        key = self.groq_api_key.strip()
+        if len(key) <= 8:
+            return "••••••••"
+        return key[:4] + "••••••••" + key[-4:]
+
     def to_dict(self):
         """Serialize for LLM context building."""
         return {
@@ -104,6 +121,8 @@ class FinancialProfile(db.Model):
             'subscription_services': self.subscription_services,
             'savings_goal_met': self.savings_goal_met,
             'financial_advice_score': self.financial_advice_score,
+            'has_custom_api_key': self.has_custom_api_key,
+            'preferred_model': self.preferred_model or 'llama-3.3-70b-versatile',
         }
 
     def __repr__(self):
