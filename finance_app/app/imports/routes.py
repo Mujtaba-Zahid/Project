@@ -6,6 +6,8 @@ from .parser import parse_csv, clean_data
 from ..extensions import db
 from ..models.transaction import Transaction
 from ..models.account import Account
+from ..models.category import Category
+from ..services.auto_categorizer import auto_categorize
 
 
 @imports_bp.route('/', methods=['GET', 'POST'])
@@ -72,9 +74,27 @@ def confirm():
         flash(f'No valid rows to import. Errors: {len(errors)}', 'danger')
         return redirect(url_for('imports.upload'))
 
-    # Insert transactions
+    # Build a category lookup for auto-categorization
+    user_categories = {
+        c.name: c.category_id
+        for c in Category.query.filter(
+            (Category.user_id == current_user.user_id) | (Category.is_default == True)
+        ).all()
+    }
+
+    # Insert transactions with auto-categorization
     count = 0
+    auto_categorized = 0
     for record in cleaned:
+        category_id = None
+        desc = record.get('description', '')
+
+        # Try auto-categorization from description
+        suggested_cat = auto_categorize(desc)
+        if suggested_cat and suggested_cat in user_categories:
+            category_id = user_categories[suggested_cat]
+            auto_categorized += 1
+
         txn = Transaction(
             user_id=current_user.user_id,
             account_id=account_id,
@@ -82,6 +102,7 @@ def confirm():
             transaction_type=record['type'],
             transaction_date=record['date'],
             description=record['description'],
+            category_id=category_id,
         )
         db.session.add(txn)
         count += 1
@@ -95,6 +116,8 @@ def confirm():
     session.pop('import_account_id', None)
 
     msg = f'Successfully imported {count} transaction(s).'
+    if auto_categorized:
+        msg += f' Auto-categorized {auto_categorized} transaction(s) using AI.'
     if errors:
         msg += f' Skipped {len(errors)} row(s) with errors.'
     flash(msg, 'success')

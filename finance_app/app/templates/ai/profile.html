@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% block title %}Financial Profile — FinanceFlow{% endblock %}
+{% block page_title %}📋 Financial Health Profile{% endblock %}
+
+{% block head %}
+<style>
+    .profile-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        max-width: 900px;
+    }
+
+    .form-section {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .form-section h3 {
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .form-group {
+        margin-bottom: 14px;
+    }
+    .form-group label {
+        display: block;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        margin-bottom: 5px;
+    }
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
+        padding: 9px 12px;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: rgba(99,102,241,0.5);
+    }
+
+    .form-group .hint {
+        font-size: 0.72rem;
+        color: var(--text-secondary);
+        margin-top: 3px;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .checkbox-group input[type="checkbox"] {
+        width: auto;
+    }
+
+    .form-actions {
+        grid-column: 1 / -1;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    @media (max-width: 768px) {
+        .profile-form { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('ai.profile') }}" class="profile-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Income & Employment -->
+    <div class="form-section">
+        <h3>💰 Income & Employment</h3>
+        <div class="form-group">
+            <label for="monthly_income_pkr">Monthly Income (PKR)</label>
+            <input type="number" id="monthly_income_pkr" name="monthly_income_pkr"
+                   value="{{ profile.monthly_income_pkr }}" step="1000" min="0">
+        </div>
+        <div class="form-group">
+            <label for="income_type">Income Type</label>
+            <select id="income_type" name="income_type">
+                {% for opt in ['Salary', 'Business', 'Freelance', 'Rental', 'Government', 'Mixed'] %}
+                <option value="{{ opt }}" {% if profile.income_type == opt %}selected{% endif %}>{{ opt }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="credit_score">Credit Score</label>
+            <input type="number" id="credit_score" name="credit_score"
+                   value="{{ profile.credit_score }}" min="300" max="850">
+            <div class="hint">300–850. Pakistani average: ~650</div>
+        </div>
+    </div>
+
+    <!-- Debt & Liabilities -->
+    <div class="form-section">
+        <h3>📊 Debt & Liabilities</h3>
+        <div class="form-group">
+            <label for="debt_to_income_ratio">Debt-to-Income Ratio</label>
+            <input type="number" id="debt_to_income_ratio" name="debt_to_income_ratio"
+                   value="{{ profile.debt_to_income_ratio }}" step="0.01" min="0" max="1">
+            <div class="hint">0.00–1.00 (e.g., 0.35 = 35% of income goes to debt)</div>
+        </div>
+        <div class="form-group">
+            <label for="loan_payment_pkr">Monthly Loan Payment (PKR)</label>
+            <input type="number" id="loan_payment_pkr" name="loan_payment_pkr"
+                   value="{{ profile.loan_payment_pkr }}" step="500" min="0">
+        </div>
+        <div class="form-group">
+            <label for="subscription_services">Active Subscriptions</label>
+            <input type="number" id="subscription_services" name="subscription_services"
+                   value="{{ profile.subscription_services }}" min="0" max="30">
+            <div class="hint">Netflix, Spotify, gym, etc.</div>
+        </div>
+    </div>
+
+    <!-- Savings & Investments -->
+    <div class="form-section">
+        <h3>🏦 Savings & Investments</h3>
+        <div class="form-group">
+            <label for="savings_rate">Savings Rate</label>
+            <input type="number" id="savings_rate" name="savings_rate"
+                   value="{{ profile.savings_rate }}" step="0.01" min="0" max="1">
+            <div class="hint">0.00–1.00 (e.g., 0.20 = 20% of income saved). Target: ≥0.20</div>
+        </div>
+        <div class="form-group">
+            <label for="emergency_fund_pkr">Emergency Fund (PKR)</label>
+            <input type="number" id="emergency_fund_pkr" name="emergency_fund_pkr"
+                   value="{{ profile.emergency_fund_pkr }}" step="5000" min="0">
+        </div>
+        <div class="form-group">
+            <label for="emergency_fund_months">Emergency Fund (Months)</label>
+            <input type="number" id="emergency_fund_months" name="emergency_fund_months"
+                   value="{{ profile.emergency_fund_months }}" step="0.5" min="0" max="24">
+            <div class="hint">How many months of expenses covered. Target: ≥3</div>
+        </div>
+        <div class="form-group">
+            <label for="investment_amount_pkr">Monthly Investment (PKR)</label>
+            <input type="number" id="investment_amount_pkr" name="investment_amount_pkr"
+                   value="{{ profile.investment_amount_pkr }}" step="1000" min="0">
+        </div>
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="savings_goal_met" name="savings_goal_met"
+                   {% if profile.savings_goal_met %}checked{% endif %}>
+            <label for="savings_goal_met" style="margin-bottom: 0;">Savings goal met this month</label>
+        </div>
+    </div>
+
+    <!-- Status & Scenario -->
+    <div class="form-section">
+        <h3>⚡ Status & Scenario</h3>
+        <div class="form-group">
+            <label for="financial_stress_level">Financial Stress Level</label>
+            <select id="financial_stress_level" name="financial_stress_level">
+                {% for opt in ['Low', 'Medium', 'High'] %}
+                <option value="{{ opt }}" {% if profile.financial_stress_level == opt %}selected{% endif %}>{{ opt }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="cash_flow_status">Cash Flow Status</label>
+            <select id="cash_flow_status" name="cash_flow_status">
+                {% for opt in ['Positive', 'Neutral', 'Negative'] %}
+                <option value="{{ opt }}" {% if profile.cash_flow_status == opt %}selected{% endif %}>{{ opt }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="financial_scenario">Economic Scenario</label>
+            <select id="financial_scenario" name="financial_scenario">
+                {% for opt in ['normal', 'high_inflation', 'emergency'] %}
+                <option value="{{ opt }}" {% if profile.financial_scenario == opt %}selected{% endif %}>{{ opt|capitalize }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {% if profile.financial_advice_score is not none %}
+        <div style="margin-top: 16px; padding: 14px; background: rgba(99,102,241,0.1); border-radius: 10px; text-align: center;">
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">Current Health Score</div>
+            <div style="font-size: 2.2rem; font-weight: 800;
+                 color: {% if profile.financial_advice_score >= 70 %}#34d399{% elif profile.financial_advice_score >= 40 %}#fbbf24{% else %}#f87171{% endif %}">
+                {{ profile.financial_advice_score }}/100
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="form-actions">
+        <a href="{{ url_for('ai.advisor') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">💾 Save & Recalculate Score</button>
+    </div>
+</form>
+{% endblock %}

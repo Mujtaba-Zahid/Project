@@ -30,6 +30,10 @@ class User(UserMixin, db.Model):
     tags = db.relationship('Tag', backref='user', lazy='dynamic')
     notifications = db.relationship('Notification', backref='user', lazy='dynamic')
 
+    # AI Advisor relationships
+    financial_profile = db.relationship('FinancialProfile', backref='user', uselist=False, lazy='joined')
+    ai_messages = db.relationship('AiChatMessage', backref='user', lazy='dynamic', order_by='AiChatMessage.created_at')
+
     def get_id(self):
         return str(self.user_id)
 

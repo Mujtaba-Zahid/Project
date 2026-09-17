@@ -57,6 +57,9 @@
                 <a href="{{ url_for('reports.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('reports') %}active{% endif %}">
                     <span class="nav-icon">📄</span><span class="nav-label">Reports</span>
                 </a>
+                <a href="{{ url_for('ai.advisor') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('ai') %}active{% endif %}" style="background: linear-gradient(90deg, rgba(99,102,241,0.08), transparent);">
+                    <span class="nav-icon">🤖</span><span class="nav-label">AI Advisor</span>
+                </a>
             </nav>
 
             <div class="sidebar-footer">

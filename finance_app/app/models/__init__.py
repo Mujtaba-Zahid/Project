@@ -11,10 +11,12 @@ from .tag import Tag
 from .audit_log import AuditLog
 from .exchange_rate import ExchangeRate
 from .notification import Notification
+from .financial_profile import FinancialProfile
+from .ai_chat import AiChatMessage
 
 __all__ = [
     'User', 'Account', 'Category', 'Transaction', 'TransactionTag',
     'Transfer', 'Budget', 'SavingsGoal', 'SavingsContribution',
     'Investment', 'RecurringTransaction', 'Tag', 'AuditLog',
-    'ExchangeRate', 'Notification',
+    'ExchangeRate', 'Notification', 'FinancialProfile', 'AiChatMessage',
 ]

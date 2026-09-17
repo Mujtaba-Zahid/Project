@@ -11,6 +11,26 @@
 {% endblock %}
 
 {% block content %}
+<!-- AI Insights Banner -->
+{% if ai_alerts %}
+<div class="card" style="margin-bottom: 20px; border-left: 4px solid #8b5cf6; background: linear-gradient(90deg, rgba(99,102,241,0.06), transparent);">
+    <div class="card-header" style="padding-bottom: 8px;">
+        <h3 class="card-title">🤖 AI Insights</h3>
+        <a href="{{ url_for('ai.advisor') }}" class="btn btn-secondary btn-sm">Open Advisor →</a>
+    </div>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; padding: 0 0 8px 0;">
+        {% for alert in ai_alerts[:3] %}
+        <div style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 0.75rem; color: {{ alert.color }}; font-weight: 600; margin-bottom: 4px;">
+                {{ alert.icon }} {{ alert.label }}
+            </div>
+            <div style="font-size: 0.85rem; font-weight: 500;">{{ alert.headline }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <!-- KPI Cards -->
 <div class="kpi-grid">
     <div class="kpi-card">

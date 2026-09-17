@@ -72,6 +72,7 @@ def _register_blueprints(app):
     from .imports import imports_bp
     from .reports import reports_bp
     from .api import api_bp
+    from .ai import ai_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -85,6 +86,7 @@ def _register_blueprints(app):
     app.register_blueprint(imports_bp)
     app.register_blueprint(reports_bp)
     app.register_blueprint(api_bp, url_prefix='/api/v1')
+    app.register_blueprint(ai_bp)
 
 
 def _register_user_loader():

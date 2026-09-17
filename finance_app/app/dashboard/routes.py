@@ -13,6 +13,7 @@ from ..models.savings_goal import SavingsGoal
 from ..models.investment import Investment
 from ..services.budget import get_budget_status
 from ..services.notifications import get_unread_count
+from ..services.ai_alerts import get_alerts_json
 
 
 def _month_range(year, month):
@@ -66,6 +67,12 @@ def index():
     # Notification count
     notif_count = get_unread_count(user_id)
 
+    # AI alerts for dashboard banner
+    try:
+        ai_alerts = get_alerts_json(user_id)[:3]
+    except Exception:
+        ai_alerts = []
+
     return render_template('dashboard/index.html',
                            total_balance=total_balance,
                            monthly_income=monthly_income,
@@ -75,7 +82,8 @@ def index():
                            budget_status=budget_status,
                            savings_goals=savings_goals,
                            accounts=accounts,
-                           notif_count=notif_count)
+                           notif_count=notif_count,
+                           ai_alerts=ai_alerts)
 
 
 @dashboard_bp.route('/chart/income-expense')
