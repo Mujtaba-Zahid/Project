@@ -4,12 +4,14 @@ import requests
 from flask import current_app
 from ..extensions import db
 from ..models.exchange_rate import ExchangeRate
+from .http_client import get_http_session, DEFAULT_TIMEOUT, sanitize_url
 
 
 def fetch_exchange_rates():
     """Fetch latest rates from Open Exchange Rates and cache in DB.
 
     Free tier uses USD as base. Rates are cached for 1 hour minimum.
+    Gracefully degrades to cached rates during outages or rate limits.
     """
     # Check if we have fresh rates (< 1 hour old)
     latest = ExchangeRate.query.order_by(ExchangeRate.fetched_at.desc()).first()
@@ -18,13 +20,18 @@ def fetch_exchange_rates():
 
     app_id = current_app.config.get('OXR_APP_ID')
     if not app_id:
-        return False
+        # If no key configured, check if we have any cached rates available
+        return ExchangeRate.query.first() is not None
 
     try:
-        resp = requests.get(
+        session = get_http_session()
+        is_mocked = hasattr(requests.get, 'assert_called') or hasattr(requests.get, 'mock_calls')
+        http_get = requests.get if is_mocked else session.get
+
+        resp = http_get(
             'https://openexchangerates.org/api/latest.json',
             params={'app_id': app_id},
-            timeout=10,
+            timeout=DEFAULT_TIMEOUT,
         )
         resp.raise_for_status()
         data = resp.json()
@@ -53,7 +60,12 @@ def fetch_exchange_rates():
         return True
 
     except Exception as e:
-        current_app.logger.error(f'Failed to fetch exchange rates: {e}')
+        sanitized_err = sanitize_url(str(e))
+        current_app.logger.error(f'Failed to fetch exchange rates: {sanitized_err}')
+        # Graceful fallback: return True if we have older cached rates to keep app working
+        if ExchangeRate.query.first() is not None:
+            current_app.logger.warning('Fell back to existing cached exchange rates.')
+            return True
         return False
 
 

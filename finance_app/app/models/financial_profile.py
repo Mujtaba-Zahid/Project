@@ -1,6 +1,8 @@
 """Financial health profile — Kaggle-calibrated metrics for the AI advisor."""
 from datetime import datetime
+from typing import Optional
 from ..extensions import db
+from ..services.crypto import encrypt_credential, decrypt_credential
 
 
 class FinancialProfile(db.Model):
@@ -42,9 +44,29 @@ class FinancialProfile(db.Model):
     # --- Computed score (0–100 composite) ---
     financial_advice_score = db.Column(db.Integer, default=50)
 
-    # --- AI / Groq LLM Configuration ---
-    groq_api_key = db.Column(db.String(255), nullable=True)
+    # --- AI / Groq LLM Configuration (Encrypted at rest) ---
+    _groq_api_key = db.Column('groq_api_key', db.String(255), nullable=True)
     preferred_model = db.Column(db.String(100), default='llama-3.3-70b-versatile')
+
+    @property
+    def groq_api_key(self) -> Optional[str]:
+        """Decrypt and return user's custom Groq API key."""
+        if not self._groq_api_key:
+            return None
+        return decrypt_credential(self._groq_api_key)
+
+    @groq_api_key.setter
+    def groq_api_key(self, value: Optional[str]):
+        """Encrypt and store user's custom Groq API key."""
+        if not value or not str(value).strip():
+            self._groq_api_key = None
+        else:
+            self._groq_api_key = encrypt_credential(str(value).strip())
+
+    @property
+    def raw_encrypted_key(self) -> Optional[str]:
+        """Return the raw ciphertext stored in the database for auditing."""
+        return self._groq_api_key
 
     # --- Metadata ---
     updated_at = db.Column(

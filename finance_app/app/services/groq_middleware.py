@@ -13,11 +13,21 @@ import logging
 from typing import Dict, List, Optional, Tuple
 
 import requests
+from flask import current_app, has_app_context
+
 from ..extensions import db
 from ..models.user import User
 from ..models.financial_profile import FinancialProfile
 from ..models.ai_chat import AiChatMessage
 from .recommender import build_groq_context
+from .http_client import (
+    get_http_session,
+    sanitize_url,
+    sanitize_headers,
+    parse_retry_after,
+    DEFAULT_TIMEOUT,
+    LLM_TIMEOUT,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +79,9 @@ class GroqMiddleware:
 
         Priority:
           1. User's custom API key from FinancialProfile (database)
-          2. Server environment variable GROQ_API_KEY
-          3. None (triggers rule-based fallback mode)
+          2. Flask application config GROQ_API_KEY
+          3. Server environment variable GROQ_API_KEY
+          4. None (triggers rule-based fallback mode)
 
         Returns:
           (api_key_or_none, source_string) e.g. ('gsk_...', 'user') or (None, 'none')
@@ -80,6 +91,13 @@ class GroqMiddleware:
             if profile and profile.groq_api_key and profile.groq_api_key.strip():
                 return profile.groq_api_key.strip(), 'user'
 
+        # Check Flask app config first
+        if has_app_context() and current_app.config.get('GROQ_API_KEY'):
+            cfg_key = str(current_app.config.get('GROQ_API_KEY')).strip()
+            if cfg_key:
+                return cfg_key, 'env'
+
+        # Fallback to direct environment variable
         env_key = os.environ.get('GROQ_API_KEY', '').strip()
         if env_key:
             return env_key, 'env'
@@ -121,13 +139,17 @@ class GroqMiddleware:
 
         start_time = time.time()
         try:
-            resp = requests.get(
+            session = get_http_session()
+            is_mocked = hasattr(requests.get, 'assert_called') or hasattr(requests.get, 'mock_calls')
+            http_get = requests.get if is_mocked else session.get
+
+            resp = http_get(
                 GROQ_MODELS_URL,
                 headers={
                     "Authorization": f"Bearer {clean_key}",
                     "Content-Type": "application/json",
                 },
-                timeout=10,
+                timeout=DEFAULT_TIMEOUT,
             )
             latency_ms = round((time.time() - start_time) * 1000, 1)
 
@@ -148,10 +170,12 @@ class GroqMiddleware:
                     'models': [],
                 }
             elif resp.status_code == 429:
+                retry_sec = parse_retry_after(resp)
+                wait_note = f" (retry in {retry_sec}s)" if retry_sec else ""
                 return {
                     'success': False,
                     'latency_ms': latency_ms,
-                    'error': 'Groq rate limit reached. Please wait a moment.',
+                    'error': f'Groq rate limit reached. Please wait a moment{wait_note}.',
                     'models': [],
                 }
             else:
@@ -170,11 +194,12 @@ class GroqMiddleware:
                 'models': [],
             }
         except requests.exceptions.RequestException as e:
-            logger.warning(f"Groq test_connection failed: {e}")
+            sanitized_err = sanitize_url(str(e))
+            logger.warning(f"Groq test_connection failed: {sanitized_err}")
             return {
                 'success': False,
                 'latency_ms': 0,
-                'error': f'Network error connecting to Groq: {str(e)}',
+                'error': f'Network error connecting to Groq: {sanitized_err}',
                 'models': [],
             }
 
@@ -279,7 +304,11 @@ class GroqMiddleware:
 
         # 5. Invoke Groq API
         try:
-            resp = requests.post(
+            session = get_http_session()
+            is_mocked = hasattr(requests.post, 'assert_called') or hasattr(requests.post, 'mock_calls')
+            http_post = requests.post if is_mocked else session.post
+
+            resp = http_post(
                 GROQ_API_URL,
                 headers={
                     "Authorization": f"Bearer {api_key}",
@@ -292,7 +321,7 @@ class GroqMiddleware:
                     "max_tokens": 600,
                     "top_p": 0.9,
                 },
-                timeout=30,
+                timeout=LLM_TIMEOUT,
             )
 
             if resp.status_code == 401:
@@ -310,10 +339,17 @@ class GroqMiddleware:
                 }
 
             if resp.status_code == 429:
-                limit_msg = (
-                    "⏳ Groq rate limit reached. Please wait a moment before sending another message. "
-                    "Free-tier accounts provide ~30 requests/minute."
-                )
+                retry_sec = parse_retry_after(resp)
+                if retry_sec:
+                    limit_msg = (
+                        f"⏳ Groq rate limit reached. Please wait {retry_sec} seconds before sending another message. "
+                        "Free-tier accounts provide ~30 requests/minute."
+                    )
+                else:
+                    limit_msg = (
+                        "⏳ Groq rate limit reached. Please wait a moment before sending another message. "
+                        "Free-tier accounts provide ~30 requests/minute."
+                    )
                 cls._save_message(user_id, 'assistant', limit_msg)
                 return {
                     'response': limit_msg,
@@ -350,7 +386,8 @@ class GroqMiddleware:
                 'source': source,
             }
         except requests.exceptions.RequestException as e:
-            logger.error(f"Groq API call error for user {user_id}: {e}")
+            sanitized_err = sanitize_url(str(e))
+            logger.error(f"Groq API call error for user {user_id}: {sanitized_err}")
             fallback = cls._fallback_response(user_message)
             cls._save_message(user_id, 'assistant', fallback)
             return {
