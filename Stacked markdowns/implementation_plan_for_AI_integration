@@ -1,0 +1,194 @@
+# Integrate AI Financial Advisor Engine into FinanceFlow (`LLM_pilot_branch`)
+
+Integrate the AI and Machine Learning personal finance advisory capabilities from the reference AI-PFA project into the production-grade Flask `finance_app`, isolated strictly within a new Git branch named **`LLM_pilot_branch`**.
+
+The resulting system upgrades FinanceFlow from a traditional ledger into an intelligent, proactive financial assistant tailored specifically for the Pakistani market (PKR) with real-time overspending alerts, predictive ML forecasting, Pakistani product substitutions, Groq-powered conversational AI, and Kaggle-calibrated financial health scoring.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Dedicated Git Branch Isolation**: All work, file additions, migrations, and commits will occur strictly on branch `LLM_pilot_branch`. The `main` branch will remain untouched.
+>
+> **Groq API Key**: The chatbot uses Groq's free-tier `llama-3.3-70b-versatile` endpoint. Users can supply their key via environment variable `GROQ_API_KEY` or through the in-app settings drawer. When no key is configured, the assistant provides insightful rule-based financial advice and informs the user how to activate live LLM chat with a free key.
+>
+> **ML Dependencies**: `scikit-learn`, `pandas`, and `numpy` will be added to `finance_app/requirements.txt` to support the 15-feature `GradientBoostingRegressor` spending forecast engine.
+
+---
+
+## Proposed Changes
+
+```mermaid
+graph TD
+    A[User Transactions & Budgets in DB] --> B[AI Alerts Engine: 6 Types]
+    A --> C[ML Spending Predictor: 15 Features]
+    A --> D[Recommender & PKR Substitutions]
+    E[Kaggle-Calibrated Financial Health Profile] --> F[Groq Llama 3.3 70B Advisor Chatbot]
+    A --> F
+    B --> G[Dashboard Alerts Banner]
+    C --> H[Forecast Visualizer & Advisor Hub]
+    D --> H
+    F --> I[Floating Chat Drawer & /ai/advisor]
+    J[CSV Statement Upload] --> K[Auto-Categorization Engine]
+    K --> A
+```
+
+---
+
+### 1. Git Branch Setup & Core Dependencies
+
+#### [NEW] Git Branch `LLM_pilot_branch`
+- Check out a new branch: `git checkout -b LLM_pilot_branch`
+- Ensure all future commits are verified on this branch.
+
+#### [MODIFY] [requirements.txt](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/requirements.txt)
+- Add ML dependencies:
+  - `pandas>=2.0.0`
+  - `numpy>=1.24.0`
+  - `scikit-learn>=1.3.0`
+
+---
+
+### 2. Database Models & Schema Extensions
+
+#### [NEW] [financial_profile.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/financial_profile.py)
+Create `FinancialProfile` model mapped to the user, tracking 15 Kaggle-calibrated financial health metrics:
+- `user_id` (ForeignKey to users)
+- `credit_score` (default: 680)
+- `debt_to_income_ratio` (default: 0.35)
+- `savings_rate` (default: 0.12)
+- `financial_stress_level` (Low, Medium, High)
+- `cash_flow_status` (Positive, Neutral, Negative)
+- `emergency_fund_pkr` (float)
+- `emergency_fund_months` (float)
+- `subscription_services` (int, default: 3)
+- `loan_payment_pkr` (float, default: 0.0)
+- `investment_amount_pkr` (float, default: 0.0)
+- `savings_goal_met` (bool, default: False)
+- `financial_scenario` (normal, high_inflation, emergency)
+- `financial_advice_score` (0–100 composite score)
+- `income_type` (Salary, Business, Freelance, etc.)
+- `monthly_income_pkr` (float, default: 80,000.0)
+
+#### [NEW] [ai_chat.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/ai_chat.py)
+Create `AiChatMessage` model to persist chat history between the user and Groq AI:
+- `user_id`, `role` (`user` or `assistant`), `content`, `tokens_used`, `created_at`.
+
+#### [MODIFY] [models/__init__.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/__init__.py)
+- Export `FinancialProfile` and `AiChatMessage`.
+
+#### [MODIFY] [user.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/user.py)
+- Add relationships for `financial_profile` (uselist=False) and `ai_messages` (dynamic).
+
+---
+
+### 3. AI & ML Services Layer (`app/services/`)
+
+#### [NEW] [ai_alerts.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/services/ai_alerts.py)
+Implements the 6 smart overspending heuristic engines adapted to SQLAlchemy user data:
+1. **Burn Rate**: Projects end-of-month spend from daily velocity vs category budget.
+2. **Acceleration**: Flags categories spending >30% above the user's 3-month rolling average.
+3. **Merchant Spike**: Statistically anomalous single transactions (z-score >= 2.5 vs historical category mean).
+4. **Category Creep**: Category budget share growing >= 8 percentage points over 3 months.
+5. **Savings Erosion**: Consecutive 3-month drop in savings or savings rate < 5%.
+6. **Weekend Drain**: Weekend spending average >= 1.8x weekday average.
+- Returns structured `Alert` dataclass instances sorted by severity (`critical`, `warning`, `info`).
+
+#### [NEW] [recommender.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/services/recommender.py)
+- Full Pakistani product substitution database (`SUBSTITUTIONS`) featuring:
+  - Transport: InDrive vs Careem, Bykea, MetroBus/BRT passes
+  - Subscriptions: Tapmad TV vs Netflix, Spotify Family, YouTube tricks
+  - Food: Broast houses, Student Biryani, home meal prepping, KFC Tuesday deal
+  - Shopping: Daraz 11.11, OLX, AliExpress direct
+  - Healthcare: Generic paracetamol (PKR 12) vs Panadol (PKR 80), Dawaai.pk
+  - Utilities & Telecom: Jazz Giga Max weekly bundles, KESC load optimization
+- `generate_recommendations(user_id)`: Outputs prioritized savings steps with estimated PKR annual savings.
+- `build_groq_context(user_id)`: Serializes user's transaction aggregates, top merchants, category shares, and Kaggle health profile into a rich system prompt.
+
+#### [NEW] [groq_client.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/services/groq_client.py)
+- Client calling Groq OpenAI-compatible API (`llama-3.3-70b-versatile`).
+- Injects user financial context and conversation history.
+- Handles rate-limits, missing API keys, and network timeouts gracefully with helpful fallback advice.
+
+#### [NEW] [spending_predictor.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/services/spending_predictor.py)
+- 15-feature engineering pipeline:
+  - Cyclical seasonality (`month_sin`, `month_cos`)
+  - Continuous time axis (`month_ord`)
+  - 3-month lookback lags (`lag_1`, `lag_2`, `lag_3`)
+  - 3-month rolling mean and std
+  - Statistical deviation (`lag1_zscore`, `spend_momentum`, `cat_share`)
+  - Transaction characteristics (`num_transactions`, `avg_transaction`, `max_transaction`)
+- Chronological train/test split (80/20) preventing temporal data leakage.
+- Trains `GradientBoostingRegressor` and `RandomForestRegressor`.
+- Evaluates MAE, RMSE, and R² score; saves artifact in `models/` directory.
+- Predicts next month's total spending per category.
+
+#### [NEW] [auto_categorizer.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/services/auto_categorizer.py)
+- Fast Pakistani-tuned keyword matcher mapping transaction descriptions (e.g., "KFC", "InDrive", "Daraz", "PTCL", "Imtiaz") to user categories.
+- Used both for CSV imports and manual transaction entry suggestions.
+
+#### [MODIFY] [imports/routes.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/imports/routes.py)
+- Integrate `auto_categorizer` so uploaded CSV transactions without a mapped category are automatically classified.
+
+---
+
+### 4. Flask Blueprint & Web Interface (`app/ai/`)
+
+#### [NEW] [app/ai/__init__.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/ai/__init__.py)
+- Register `ai_bp` blueprint with prefix `/ai`.
+
+#### [NEW] [app/ai/routes.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/ai/routes.py)
+- `GET /ai/advisor`: Unified AI financial command center.
+- `POST /ai/chat`: AJAX endpoint for conversational Q&A with Groq.
+- `GET/POST /ai/profile`: View and tune the Kaggle-calibrated financial health profile.
+- `POST /ai/predict/train`: Train the ML models and refresh next month's forecast.
+- `GET /ai/api/alerts`: JSON endpoint of active alerts for dashboard integration.
+
+#### [NEW] [app/templates/ai/advisor.html](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/templates/ai/advisor.html)
+- Dynamic glassmorphic layout:
+  1. **Health Score Hero**: Circular visual score (0-100), stress badge, DTI ratio, and emergency fund buffer.
+  2. **Smart Alerts Panel**: Active alert cards (Burn rate, Weekend drain, etc.) with color-coded severity badges and instant action steps.
+  3. **ML Forecast Visualizer**: Side-by-side comparison of recent spending vs predicted next month PKR spending with model accuracy indicators.
+  4. **Pakistani Substitution Cards**: Real PKR cost-saving swaps based on actual merchants detected.
+  5. **Conversational AI Drawer**: Chat interface with quick prompt chips ("How can I save PKR 10k this month?", "Cheaper alternative to Careem?").
+
+#### [NEW] [app/templates/ai/profile.html](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/templates/ai/profile.html)
+- Form to customize income, credit score, debt, and stress levels to tailor the AI advisor.
+
+#### [MODIFY] [app/templates/base.html](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/templates/base.html)
+- Add "🤖 AI Advisor" navigation item with an alert count badge in the sidebar.
+- Embed floating AI Advisor quick-toggle trigger button and slide-out chat drawer.
+
+#### [MODIFY] [app/templates/dashboard/index.html](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/templates/dashboard/index.html)
+- Add an "AI Insights & Alerts" carousel/banner directly above the KPI cards showing high-priority alerts and top recommendations.
+
+#### [MODIFY] [app/__init__.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/__init__.py)
+- Register `ai_bp` in application factory.
+
+---
+
+## Verification Plan
+
+### Automated Unit & Integration Tests
+1. **AI Services Test Suite** (`finance_app/tests/test_ai_advisor.py`):
+   - **Overspending Engine**: Verify all 6 alert conditions trigger correctly on synthetic spending patterns (Burn Rate projection, Acceleration >30%, Merchant spike z>=2.5, Weekend ratio >=1.8, Savings drop).
+   - **Pakistani Recommender**: Verify substitutions trigger for known merchants (Careem, Netflix, Panadol, KFC).
+   - **ML Feature Engineering & Predictor**: Test 15-feature matrix generation, cyclical encoding, chronological split, and `GradientBoostingRegressor` inference.
+   - **Kaggle Profile & Scoring**: Test financial health score calculation (0–100) and risk flag evaluations.
+   - **Auto-Categorizer**: Test keyword matching accuracy for Pakistani transaction strings.
+2. **Regression Test**:
+   - Run `python -m unittest tests.test_finance_app` from the `finance_app/` working directory, ensuring all 12 existing test suites pass without regression.
+3. **Execute Command**:
+   - `& "c:\Users\nofil\Desktop\Projects\Project\finance_app\venv\Scripts\python.exe" -m unittest discover -s tests -p "test_*.py"`
+
+### Manual / Browser Verification
+1. Log in to `http://localhost:5000` as the demo user.
+2. Verify "🤖 AI Advisor" in sidebar navigation.
+3. Check Dashboard AI Alert Banner for real-time detected overspending warnings.
+4. Open the `/ai/advisor` page:
+   - Verify Financial Health scorecard metrics and gauge.
+   - Test ML forecast view for next month's category predictions.
+   - Inspect Pakistani substitution cards.
+   - Test AI Chat drawer with Groq API integration (and mock fallback if API key is not yet set).
+5. Verify Git status: `git branch` displays `* LLM_pilot_branch` and all files are committed cleanly.

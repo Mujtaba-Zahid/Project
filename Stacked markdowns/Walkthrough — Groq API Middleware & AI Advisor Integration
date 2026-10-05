@@ -1,0 +1,101 @@
+# Walkthrough — Groq API Middleware & AI Advisor Integration
+
+We implemented a robust Groq API middleware layer, linked it directly to user database models, built an interactive API Key configuration modal in the AI Financial Advisor interface, and successfully tested live end-to-end AI chat reasoning using the provided Groq API key.
+
+---
+
+## 1. Architecture & Model Linkage
+
+### Database Migration & Schema
+- **Migration**: [`migrations/versions/893368a6f079_add_groq_api_key_and_preferred_model_to_.py`](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/migrations/versions/893368a6f079_add_groq_api_key_and_preferred_model_to_.py)
+- Added `groq_api_key` (`VARCHAR(255)`) and `preferred_model` (`VARCHAR(100)`) to the `financial_profiles` table.
+- Upgraded the database schema seamlessly with Flask-Migrate.
+
+### Model Integration
+- **[`FinancialProfile`](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/financial_profile.py)**:
+  - Added properties `has_custom_api_key` and `masked_api_key` (e.g. `gsk_••••••••yMWR`).
+  - Updated `to_dict()` for context serialization.
+- **[`User`](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/user.py)**:
+  - Added `user.groq_api_key` and `user.has_groq_key` convenience accessors.
+
+### Groq Middleware Layer
+- **[`GroqMiddleware`](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/services/groq_middleware.py)**:
+  1. **Hierarchical Credential Resolution**:
+     - Priority 1: User's encrypted/saved custom API key in `financial_profiles`.
+     - Priority 2: System-wide fallback `GROQ_API_KEY` from environment.
+     - Priority 3: Smart offline Pakistani rule-based fallback advice engine.
+  2. **Live Connection Verification (`test_connection`)**:
+     - Pings Groq's `/v1/models` endpoint.
+     - Measures real-time latency (typically ~370ms) and checks authorization validity.
+  3. **Multi-Model Catalog**:
+     - Configured support for Groq's active high-performance models:
+       * `openai/gpt-oss-120b` (Default flagship reasoning, 128k context)
+       * `qwen/qwen3.8-27b` (Ultra-fast multilingual conversational model)
+       * `groq/compound` & `groq/compound-mini` (High-efficiency reasoning)
+  4. **Context Injection & Chat Persistence**:
+     - Synthesizes user financial profile, monthly income, transactions, and budgets into Pakistani-tailored system prompts.
+     - Automatically logs user prompts and assistant replies into `ai_chat_messages` table.
+
+---
+
+## 2. Interactive UI & Modal Implementation
+
+In **[`app/templates/ai/advisor.html`](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/templates/ai/advisor.html)**:
+1. **Header Action & Status Indicator**:
+   - Added **🔑 Groq API Key** button alongside *✏️ Edit Profile*.
+   - Live status badge showing:
+     * `Connected (OSS)` with a pulsing green status dot when active.
+     * `Offline Fallback Mode` with an amber status dot when no key is set.
+2. **Groq API Key Modal Dialog**:
+   - Modern glassmorphic modal with backdrop blur.
+   - Password input with show/hide toggle (`👁️` / `🙈`).
+   - Preferred model dropdown selector.
+   - **⚡ Test Connection** button: tests key against Groq API in real-time before saving.
+   - **💾 Save & Connect** button: validates, encrypts, and commits key to the user profile.
+   - **🗑️ Remove Key** button: safely purges the key and reverts to offline fallback mode.
+3. **Chat Card Header**:
+   - Real-time model badge indicating the active LLM (e.g. `openai/gpt-oss-120b`).
+
+---
+
+## 3. Live Testing & Verification Results
+
+### Testing the User-Provided API Key
+The provided testing key (`gsk_vrIF6...yMWR`) was validated live:
+- **Connection Latency**: 372.2ms.
+- **Model Used**: `openai/gpt-oss-120b`.
+- **Live Query**: *"Can you give me a personalized budget advice for Karachi?"*
+- **Response**: Full, customized Pakistani financial breakdown tailored to PKR 80,000 income, factoring in local housing, commute costs, and NSC savings tips.
+- **Tokens Generated**: 1,582 tokens.
+- **Fallback Activated**: `False` (100% powered by live Groq LLM).
+
+### Automated Unit & Integration Tests
+Ran complete test discovery via `unittest`:
+```
+Ran 23 tests in 14.033s
+
+OK
+```
+- Core App Regression Suite: `12/12 PASSED`
+- AI Advisor & Groq Middleware Suite: `11/11 PASSED` (grew from 9 to 11 tests with the addition of `test_groq_middleware_model_linkage` and `test_api_key_web_endpoints`)
+- **Combined Test Run**: `23/23 PASSED (OK)` across both suites (12 core tests + 11 AI Advisor tests)
+
+---
+
+## 4. Visual Artifacts & Recording
+
+### Live Verified State in Browser
+
+![Groq Connected Badge](file:///C:/Users/nofil/.gemini/antigravity-ide/brain/6cc70a5c-79f2-4fd9-b8b9-84771886e9c9/groq_connected_status_badge_1789681015148.png)
+
+![Groq Modal Verified](file:///C:/Users/nofil/.gemini/antigravity-ide/brain/6cc70a5c-79f2-4fd9-b8b9-84771886e9c9/groq_modal_verified_success_1789681105035.png)
+
+![Live Groq AI Chat Response](file:///C:/Users/nofil/.gemini/antigravity-ide/brain/6cc70a5c-79f2-4fd9-b8b9-84771886e9c9/groq_live_ai_chat_response_1789681267074.png)
+
+---
+
+## 5. Git Commit Summary
+
+All changes have been committed exclusively to branch `LLM_pilot_branch`:
+- **Commit**: `79828b8`
+- **Message**: `feat(ai): add Groq API middleware with model linkage, UI API key modal, and live chat verification`

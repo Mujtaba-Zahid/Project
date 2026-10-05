@@ -9,9 +9,11 @@
     </div>
     <h2 class="auth-title">Create Your Account</h2>
 
+    {% if config.GOOGLE_CLIENT_ID %}
     <a href="{{ url_for('auth.google_login') }}" class="btn btn-google">
         🔵 Sign up with Google
     </a>
+{% endif %}
 
     <div class="auth-divider">or register with email</div>
 
@@ -19,7 +21,7 @@
         {{ form.hidden_tag() }}
         <div class="form-group">
             <label for="name">Full Name</label>
-            {{ form.name(class="form-control", placeholder="Nofil Ahmed", id="name") }}
+            {{ form.name(class="form-control", placeholder="Nofil Ansari", id="name") }}
             {% for error in form.name.errors %}
             <div class="form-error">{{ error }}</div>
             {% endfor %}

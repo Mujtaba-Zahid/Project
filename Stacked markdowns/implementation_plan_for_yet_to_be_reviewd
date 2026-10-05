@@ -1,0 +1,145 @@
+# Comprehensive System Modernization & Best Practices Implementation Plan
+
+## Problem & Background
+
+In our architectural review, we identified several under-developed components and critical violations of production best practices across the application:
+1. **Critical Client-Side Session Bloat**: CSV imports store raw spreadsheet rows directly in Flask's client-side cookie session (`session['import_all_rows']`), leading to `Cookie Too Large (HTTP 400)` crashes on files with more than ~40 rows.
+2. **Missing Concurrency & Row Locking**: Fund transfers and balance calculations perform unsynchronized read-then-write operations without row-level locking (`with_for_update()`), exposing balances to race conditions and double-spending.
+3. **Deprecated Datetime Methods**: 15+ occurrences of `datetime.utcnow()` produce runtime deprecation warnings in Python 3.12+ and risk subtle timezone bugs.
+4. **Month-End Date Overflow in Recurring Bills**: Next-due calculations use naive `today.replace(month=month)`, which crashes with `ValueError: day is out of range for month` on days 29, 30, and 31.
+5. **Manual-Only Recurring Processing**: Recurring transactions only execute if a user manually logs in and submits a POST request; there is no autonomous worker or scheduler.
+6. **Synchronous Heavy Tasks & Unversioned ML Models**: ML model training and external API syncing run synchronously within HTTP request-response cycles. Trained models lack serialization metadata and lifecycle tracking.
+7. **Session-Bound REST API**: `/api/v1/*` endpoints are limited to browser cookie authentication, preventing mobile/CLI/external token-based consumption.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> - **Session Cookie Fix**: Moving CSV uploads from cookie storage to temporary filesystem storage (`UPLOAD_FOLDER/<import_id>.csv`) is essential for statement imports of normal size (hundreds/thousands of rows).
+> - **Background Execution Strategy**: To keep deployment lightweight and cross-platform without requiring external daemon infrastructure (like Redis/RabbitMQ), we propose implementing an **in-process Background Runner / APScheduler** with clean abstractions that can optionally plug into Celery/Redis in production.
+> - **Phased Execution**: Because these changes touch multiple subsystems, we have structured the plan into sequential, verifiable phases.
+
+---
+
+## Open Questions
+
+> [!NOTE]
+> 1. **Scheduler Preference**: Do you prefer an **in-process threaded scheduler (Flask-APScheduler / BackgroundScheduler)** that requires zero external services, or would you prefer a standalone **Redis + RQ / Celery** stack? *(Default recommendation: in-process scheduler for zero friction)*.
+> 2. **REST API Authentication**: Should the `/api/v1` routes support **API Keys / Personal Access Tokens (PAT)** (simpler, revokable per user) or **JWT Bearer Tokens** (stateless)? *(Default recommendation: Personal Access Tokens stored hashed in the database)*.
+
+---
+
+## Proposed Changes
+
+```mermaid
+graph TD
+    subgraph Phase 1: Core Integrity & Bugs
+        P1_A["Fix CSV Session Cookie Crash"]
+        P1_B["Add with_for_update() Row Locking"]
+        P1_C["Replace datetime.utcnow() with UTC Aware"]
+        P1_D["Fix Month-End Date Math in Recurring"]
+    end
+
+    subgraph Phase 2: Autonomous Scheduler
+        P2_A["Background Task Scheduler"]
+        P2_B["Automated Daily Recurring Processor"]
+        P2_C["Periodic Background Exchange Rate Sync"]
+    end
+
+    subgraph Phase 3: ML Lifecycle & Schema Validation
+        P3_A["Model Versioning & Metadata Tracking"]
+        P3_B["Declarative Request Schemas (Marshmallow)"]
+    end
+
+    subgraph Phase 4: API & Frontend Modernization
+        P4_A["Token/PAT Auth for /api/v1"]
+        P4_B["Modularize Inline JS from Templates"]
+    end
+
+    P1_A --> P2_A
+    P1_B --> P2_A
+    P2_A --> P3_A
+    P3_A --> P4_A
+```
+
+---
+
+### Phase 1: Critical Data Integrity & Concurrency Fixes
+
+#### [MODIFY] [imports/routes.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/imports/routes.py)
+- Replace `session['import_all_rows']` with server-side temp storage using a secure UUID token (`import_<uuid>.json` in `UPLOAD_FOLDER`).
+- Store only the `import_id` token in the session cookie.
+- Clean up temporary files upon import completion or cancellation.
+
+#### [MODIFY] [services/transfer.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/services/transfer.py)
+- Implement `with_for_update()` row locking on both source and destination accounts.
+- Enforce deterministic account lock ordering (`min(id1, id2)`, then `max(id1, id2)`) to eliminate database deadlocks.
+
+#### [MODIFY] [models/*.py & services/*.py] (All Models & Services)
+- Standardize all timestamps to timezone-aware UTC:
+  - Create helper `utc_now()` in a common utility module.
+  - Update default column factories in [`account.py`](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/account.py), [`transaction.py`](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/transaction.py), [`financial_profile.py`](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/financial_profile.py), [`savings_goal.py`](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/savings_goal.py), [`audit_log.py`](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/audit_log.py), [`exchange_rate.py`](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/exchange_rate.py).
+  - Update `currency.py` and `savings.py`.
+
+#### [MODIFY] [recurring/routes.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/recurring/routes.py)
+- Implement calendar-aware date incrementing using `calendar.monthrange` or `dateutil.relativedelta` so processing on Jan 31 advances to Feb 28/29 without `ValueError`.
+
+---
+
+### Phase 2: Autonomous Scheduler & Background Automation
+
+#### [NEW] [services/scheduler.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/services/scheduler.py)
+- Implement an application-aware background scheduler (`APScheduler` or threaded daemon runner).
+- Register scheduled jobs:
+  - Daily at midnight: Process due recurring transactions across active users.
+  - Hourly: Refresh exchange rates if stale.
+
+#### [MODIFY] [app/__init__.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/__init__.py)
+- Initialize scheduler conditionally (preventing duplicate triggers in Flask reloader or testing modes).
+
+---
+
+### Phase 3: ML Model Persistence, Lifecycle & Schemas
+
+#### [MODIFY] [services/spending_predictor.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/services/spending_predictor.py)
+- Upgrade model persistence to record rich metadata: `trained_at`, `sample_count`, `r2_scores`, `rmse`, and `feature_schema_version`.
+- Protect prediction route from blocking cold-start training: return cached predictions or trigger async background job if training is needed.
+
+#### [NEW] [api/schemas.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/api/schemas.py)
+- Add declarative validation schemas for Transaction, Transfer, and Account inputs.
+- Standardize error formatting across all JSON endpoints.
+
+---
+
+### Phase 4: REST API Expansion & Frontend Modularization
+
+#### [NEW] [models/api_key.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/models/api_key.py)
+- Model for user-generated Personal Access Tokens (PAT) with SHA-256 hashed storage, scope, and expiration.
+
+#### [MODIFY] [api/accounts.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/api/accounts.py) & [api/transactions.py](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/api/transactions.py)
+- Support dual auth: Session auth or `Authorization: Bearer <pat_token>`.
+- Add CRUD for categories and budgets.
+
+#### [NEW] [static/js/advisor.js](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/static/js/advisor.js)
+- Extract inline scripts from [`advisor.html`](file:///c:/Users/nofil/Desktop/Projects/Project/finance_app/app/templates/ai/advisor.html) into modular, testable JavaScript.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+1. **Concurrency Tests**: Run multi-threaded concurrent transfer simulation to verify `with_for_update()` prevents balance overdraw.
+2. **CSV Import Size Test**: Upload 200+ row CSV to verify cookie size remains minimal (<100 bytes) and data imports accurately.
+3. **Month-End Date Tests**: Test recurring transaction advancement from Jan 31, Aug 31, and Leap Day (Feb 29).
+4. **Timezone Deprecation Tests**: Verify zero `DeprecationWarning` outputs during full test run.
+5. **Full Regression Suite**: Ensure all 39 existing unit tests continue to pass without error.
+
+```powershell
+.\venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+### Manual Verification
+1. Test large bank statement upload via browser UI (`/imports/`).
+2. Verify recurring transaction advancement without error.
+3. Inspect `instance/finance_tracker.db` to verify consistent account balances after transfers.

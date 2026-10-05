@@ -1,0 +1,77 @@
+# Walkthrough: Setting Up GitHub Actions Continuous Integration (CI) Pipeline
+
+This walkthrough details the setup of a automated Continuous Integration (CI) pipeline using **GitHub Actions** for `finance_app`.
+
+---
+
+## 🛠️ What Was Created
+
+1. **GitHub Actions Workflow File**: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
+2. **Implementation Plan**: [`ci_implementation_plan.md`](../ci_implementation_plan.md)
+
+---
+
+## 🔍 Pipeline Architecture & Explanation
+
+The workflow script in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) automates build, lint, and test validation on every code change:
+
+```mermaid
+graph TD
+    A[Push / Pull Request to main] --> B[Trigger GitHub Actions]
+    B --> C[Matrix Build: Python 3.10, 3.11, 3.12]
+    C --> D[Set Working Directory to finance_app]
+    D --> E[Checkout Code & Restore Pip Cache]
+    E --> F[Install Requirements]
+    F --> G[Run Flake8 Syntax & Error Check]
+    G --> H[Run Black Code Formatting Check]
+    H --> I[Run Unittest Suite in TestingConfig Mode]
+    I --> J[Report Workflow Status Pass / Fail]
+```
+
+### Key Components
+
+| Block / Feature | Rationale |
+| :--- | :--- |
+| **`on: push / pull_request`** | Runs tests automatically on every commit to main or when opening a pull request. |
+| **`working-directory: finance_app`** | Ensures all `pip` and `python -m unittest` commands run seamlessly inside the app directory structure. |
+| **`matrix: python-version: [3.10, 3.11, 3.12]`** | Verifies compatibility across modern Python runtimes simultaneously. |
+| **`cache: 'pip'`** | Speeds up workflow execution by caching downloaded packages across runs. |
+| **`TestingConfig` Mode** | Sets `FLASK_ENV: testing`, running all 39 tests against an isolated in-memory SQLite database. |
+
+---
+
+## 🚀 How to Enable & Verify on GitHub
+
+### Step 1: Commit and Push to GitHub
+Run the following commands in your shell to push the new workflow to your repository:
+
+```bash
+git add .github/workflows/ci.yml
+git commit -m "ci: add GitHub Actions workflow for linting and unit testing"
+git push origin HEAD
+```
+
+After pushing your branch, open or update a Pull Request targeting the `main` branch to trigger the CI workflow.
+
+### Step 2: View Workflow Runs on GitHub
+1. Navigate to your repository on **GitHub.com**.
+2. Click on the **Actions** tab at the top of the repository page.
+3. Select the **CI Pipeline** workflow from the left sidebar.
+4. Click on the latest run to inspect the status of the Python 3.10, 3.11, and 3.12 jobs in real time!
+
+---
+
+## 🧪 Local Test Verification
+
+The test suite was verified locally before finalizing the pipeline:
+
+- **Command**: `python -m unittest discover -s tests -t .` (inside `finance_app`)
+- **Result**: `Ran 39 tests in 17.015s — OK`
+
+---
+
+## 💡 Best Practices Implemented
+
+- ✅ **Pinned Action Versions**: Using `@v4` and `@v5` for standard GitHub actions (`checkout`, `setup-python`).
+- ✅ **Fail-Fast Safety**: Prevents broken builds or invalid Python syntax from merging into master.
+- ✅ **Environment Isolation**: Uses explicit environment flags (`FLASK_ENV: testing`) so no production credentials or databases are affected.

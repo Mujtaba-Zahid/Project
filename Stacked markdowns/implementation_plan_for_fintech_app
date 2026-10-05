@@ -1,0 +1,479 @@
+# Personal Finance Tracker — Flask Web App
+
+Convert the existing PostgreSQL schema ([personal_finance_tracker_project.sql](personal_finance_tracker_project.sql)) into a production-ready Flask web application with modern UI, multi-user auth, and full financial tracking capabilities.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Google OAuth Setup**: You'll need to create a Google Cloud project and configure OAuth 2.0 credentials (Client ID + Client Secret). I'll provide instructions during the auth phase, but you'll need a Google account with access to the [Google Cloud Console](https://console.cloud.google.com/).
+
+> [!IMPORTANT]
+> **Open Exchange Rates API Key**: You'll need to sign up for a free account at [Open Exchange Rates](https://openexchangerates.org/signup/free) to get an App ID for live currency conversion. The free tier provides 1,000 requests/month.
+
+> [!WARNING]
+> **PostgreSQL Service**: Your PostgreSQL 18 service failed to start (permissions error). Before we begin, you'll need to fix this — likely by running the service start command as Administrator. I'll help troubleshoot this in Phase 1.
+
+> [!IMPORTANT]
+> **Gmail SMTP**: For email notifications, you'll need to generate a Gmail App Password (requires 2FA enabled on your Google account). Regular Gmail passwords won't work with SMTP.
+
+## Proposed Changes
+
+---
+
+### Phase 1: Project Scaffolding & Configuration
+
+Set up the Flask application structure, virtual environment, and configuration.
+
+#### [NEW] `finance_app/` — Project root directory
+
+```
+finance_app/
+├── app/
+│   ├── __init__.py              # App factory (create_app)
+│   ├── extensions.py            # Flask extensions init (db, migrate, login, mail, oauth)
+│   ├── config.py                # Config classes (Dev, Prod, Test)
+│   ├── models/                  # SQLAlchemy ORM models
+│   │   ├── __init__.py
+│   │   ├── user.py
+│   │   ├── account.py
+│   │   ├── category.py
+│   │   ├── transaction.py
+│   │   ├── transfer.py
+│   │   ├── budget.py
+│   │   ├── savings_goal.py
+│   │   ├── investment.py
+│   │   ├── recurring.py
+│   │   ├── tag.py
+│   │   └── audit_log.py
+│   ├── auth/                    # Auth blueprint
+│   │   ├── __init__.py
+│   │   ├── routes.py            # Login, register, OAuth callbacks
+│   │   └── forms.py             # WTForms for login/register
+│   ├── dashboard/               # Dashboard blueprint
+│   │   ├── __init__.py
+│   │   └── routes.py
+│   ├── transactions/            # Transactions blueprint
+│   │   ├── __init__.py
+│   │   ├── routes.py
+│   │   └── forms.py
+│   ├── accounts/                # Accounts blueprint
+│   │   ├── __init__.py
+│   │   ├── routes.py
+│   │   └── forms.py
+│   ├── budgets/                 # Budgets blueprint
+│   │   ├── __init__.py
+│   │   ├── routes.py
+│   │   └── forms.py
+│   ├── savings/                 # Savings goals blueprint
+│   │   ├── __init__.py
+│   │   ├── routes.py
+│   │   └── forms.py
+│   ├── investments/             # Investments blueprint
+│   │   ├── __init__.py
+│   │   ├── routes.py
+│   │   └── forms.py
+│   ├── recurring/               # Recurring transactions blueprint
+│   │   ├── __init__.py
+│   │   ├── routes.py
+│   │   └── forms.py
+│   ├── tags/                    # Tags blueprint
+│   │   ├── __init__.py
+│   │   └── routes.py
+│   ├── imports/                 # CSV import blueprint
+│   │   ├── __init__.py
+│   │   ├── routes.py
+│   │   └── parser.py           # CSV parsing & cleaning logic
+│   ├── reports/                 # Reports & export blueprint
+│   │   ├── __init__.py
+│   │   └── routes.py
+│   ├── api/                     # REST API blueprint (v1)
+│   │   ├── __init__.py
+│   │   ├── transactions.py
+│   │   ├── accounts.py
+│   │   ├── budgets.py
+│   │   └── auth.py
+│   ├── services/                # Business logic layer
+│   │   ├── __init__.py
+│   │   ├── balance.py           # get_balance, deposit, withdraw
+│   │   ├── transfer.py          # fund_transfer with atomicity
+│   │   ├── budget.py            # budget checking, overspend alerts
+│   │   ├── savings.py           # goal progress, auto-complete
+│   │   ├── currency.py          # Exchange rate fetching & conversion
+│   │   ├── notifications.py    # Email notification service
+│   │   └── audit.py            # Audit logging service
+│   ├── templates/               # Jinja2 templates
+│   │   ├── base.html            # Master layout (sidebar, nav, footer)
+│   │   ├── auth/
+│   │   │   ├── login.html
+│   │   │   └── register.html
+│   │   ├── dashboard/
+│   │   │   └── index.html
+│   │   ├── transactions/
+│   │   │   ├── list.html
+│   │   │   ├── form.html
+│   │   │   └── partials/       # HTMX partial templates
+│   │   ├── accounts/
+│   │   ├── budgets/
+│   │   ├── savings/
+│   │   ├── investments/
+│   │   ├── recurring/
+│   │   ├── tags/
+│   │   ├── imports/
+│   │   │   ├── upload.html
+│   │   │   └── preview.html
+│   │   ├── reports/
+│   │   └── components/          # Reusable template components
+│   │       ├── sidebar.html
+│   │       ├── navbar.html
+│   │       ├── card.html
+│   │       ├── table.html
+│   │       └── modal.html
+│   └── static/
+│       ├── css/
+│       │   └── style.css        # Full design system (dark fintech theme)
+│       ├── js/
+│       │   ├── app.js           # Global JS (sidebar toggle, HTMX config)
+│       │   ├── charts.js        # Chart.js configurations
+│       │   └── import.js        # CSV preview & column mapping logic
+│       └── img/                 # Logos, icons, favicons
+├── migrations/                  # Alembic migration files (auto-generated)
+├── .env                         # Environment variables (secrets, DB URL)
+├── .env.example                 # Template for env vars (no secrets)
+├── .gitignore
+├── requirements.txt
+├── run.py                       # Entry point: python run.py
+└── seed.py                      # Seed script (port sample data from SQL)
+```
+
+#### [NEW] [requirements.txt](finance_app/requirements.txt)
+Key dependencies:
+- `Flask` — web framework
+- `Flask-SQLAlchemy` — ORM integration
+- `Flask-Migrate` — Alembic migrations
+- `Flask-Login` — session management
+- `Flask-WTF` — form validation + CSRF
+- `Flask-Mail` — email notifications
+- `Authlib` — OAuth 2.0 (Google Sign-In)
+- `psycopg2-binary` — PostgreSQL driver
+- `python-dotenv` — env var loading
+- `gunicorn` — production WSGI server
+- `requests` — HTTP client for exchange rate API
+
+#### [NEW] [config.py](finance_app/app/config.py)
+- `DevelopmentConfig` — debug mode, local PostgreSQL URL
+- `ProductionConfig` — hardened settings
+- `TestingConfig` — SQLite in-memory for tests
+- All secrets loaded from `.env` file
+
+---
+
+### Phase 2: Database Models (SQLAlchemy ORM)
+
+Port all 12 tables to SQLAlchemy models with these **schema improvements**:
+
+#### [NEW] [user.py](finance_app/app/models/user.py)
+- Add `password_hash` (nullable — for email/password users)
+- Add `google_id` (nullable — for OAuth users)
+- Add `avatar_url` (nullable — from Google profile)
+- Add `preferred_currency` (default `'PKR'`)
+- Add `is_active` (boolean, for account deactivation)
+- Implement `UserMixin` from Flask-Login
+- Password hashing via `werkzeug.security`
+
+#### [NEW] [account.py](finance_app/app/models/account.py)
+- Same as existing schema
+- Add `is_deleted` (boolean) + `deleted_at` (timestamp) for soft delete
+- Add `balance` as a hybrid property (computed from transactions)
+
+#### [NEW] [category.py](finance_app/app/models/category.py)
+- Add `user_id` foreign key (nullable — `NULL` = global/system category)
+- Add `is_default` boolean flag for system-seeded categories
+- Add `icon` field (emoji or icon class name for UI)
+
+#### [NEW] [transaction.py](finance_app/app/models/transaction.py)
+- Same as existing schema
+- Add `is_deleted` + `deleted_at` for soft delete
+- Add `currency` field (default from user's preferred currency)
+- Add `exchange_rate` field (rate at time of transaction, for multi-currency)
+- Add relationship to tags via `transaction_tags` association table
+
+#### [NEW] [transfer.py](finance_app/app/models/transfer.py)
+- Same as existing schema
+- Add `notes` field for transfer descriptions
+
+#### [NEW] [budget.py](finance_app/app/models/budget.py)
+- Same as existing schema
+- Add `alert_threshold` (decimal, default 0.8 — alert at 80% spent)
+- Add `alert_sent` (boolean — prevent duplicate emails)
+
+#### [NEW] [savings_goal.py](finance_app/app/models/savings_goal.py)
+- Same as existing schema
+- Add `is_deleted` + `deleted_at` for soft delete
+- Add `contributions` relationship (new table for tracking individual contributions)
+
+#### [NEW] [investment.py](finance_app/app/models/investment.py)
+- Same as existing schema
+- Add `currency` field
+- Add `sold_date` and `sold_amount` (nullable — for tracking realized gains)
+
+#### [NEW] [recurring.py](finance_app/app/models/recurring.py)
+- Same as existing schema
+- Add `is_active` (boolean — to pause recurring transactions)
+- Add `last_processed_date` (track when it was last auto-created)
+
+#### [NEW] [tag.py](finance_app/app/models/tag.py)
+- Add `user_id` foreign key (per-user tags)
+- Add `color` field (hex color for UI display)
+
+#### [NEW] [audit_log.py](finance_app/app/models/audit_log.py)
+- Same as existing schema
+- Add `user_id` foreign key (who performed the action)
+- Add `old_value` and `new_value` (JSON fields for change tracking)
+
+#### New Tables
+
+| Table | Purpose |
+|-------|---------|
+| `savings_contributions` | Track individual deposits to savings goals (amount, date, source account) |
+| `exchange_rates` | Cache exchange rates locally (base_currency, target_currency, rate, fetched_at) |
+| `notifications` | Store notification history (user_id, type, message, is_read, created_at) |
+
+---
+
+### Phase 3: Authentication
+
+#### [NEW] [auth/routes.py](finance_app/app/auth/routes.py)
+- `GET/POST /login` — email/password login form
+- `GET/POST /register` — registration with email validation
+- `GET /login/google` — initiate Google OAuth flow
+- `GET /auth/callback` — handle Google OAuth callback (create or link user)
+- `GET /logout` — clear session
+- CSRF protection on all forms via Flask-WTF
+- Auto-seed default categories and tags for new users
+
+#### [NEW] [auth/forms.py](finance_app/app/auth/forms.py)
+- `LoginForm` — email + password fields
+- `RegisterForm` — name, email, phone, password, confirm_password
+
+---
+
+### Phase 4: Core Business Logic (Services Layer)
+
+Port all stored procedures and functions to Python with improvements:
+
+#### [NEW] [services/balance.py](finance_app/app/services/balance.py)
+- `get_balance(account_id)` — replaces `get_balance()` SQL function
+- `deposit(account_id, amount, description)` — replaces `deposit_amount()` procedure
+- `withdraw(account_id, amount, description)` — replaces `withdraw_amount()` procedure
+- **Improvement**: Add validation (account ownership, active status), atomic transactions, and audit logging
+
+#### [NEW] [services/transfer.py](finance_app/app/services/transfer.py)
+- `fund_transfer(from_id, to_id, amount, notes)` — replaces `fund_transfer()` procedure
+- **Improvement**: Support cross-currency transfers with exchange rate locking
+
+#### [NEW] [services/budget.py](finance_app/app/services/budget.py)
+- `check_budget(user_id, category_id, month)` — check if spending exceeds budget
+- `send_overspend_alert(user_id, budget)` — trigger email notification
+- **Improvement**: Configurable alert threshold (default 80%), prevent duplicate alerts
+
+#### [NEW] [services/savings.py](finance_app/app/services/savings.py)
+- `get_goal_progress(goal_id)` — replaces `get_goal_progress()` SQL function
+- `contribute_to_goal(goal_id, amount, account_id)` — add money from an account to a goal
+- `update_goal_status(goal_id)` — replaces `update_goal_status()` procedure
+- **Improvement**: Track individual contributions, auto-complete goal when target reached
+
+#### [NEW] [services/currency.py](finance_app/app/services/currency.py)
+- `fetch_exchange_rates()` — call Open Exchange Rates API, cache in DB
+- `convert(amount, from_currency, to_currency)` — convert using cached rates
+- `get_supported_currencies()` — list available currencies
+- **Improvement**: Cache rates in `exchange_rates` table, refresh at most once per hour
+
+#### [NEW] [services/notifications.py](finance_app/app/services/notifications.py)
+- `send_budget_alert(user, budget, spent_amount)` — send email via Flask-Mail
+- `check_recurring_dues(user_id)` — find due recurring transactions
+- **Improvement**: Store notification history in DB for in-app review
+
+#### [NEW] [services/audit.py](finance_app/app/services/audit.py)
+- `log_action(table, operation, record_id, user_id, old_value, new_value)` — unified audit logger
+- **Improvement**: Capture before/after JSON diffs for all changes
+
+---
+
+### Phase 5: Web Routes & Templates (Jinja2 + HTMX)
+
+#### Dashboard (`/dashboard`)
+- **KPI cards**: Total balance, monthly income, monthly expenses, net worth
+- **Charts** (Chart.js):
+  - Line chart: income vs expense trend (last 6 months)
+  - Doughnut chart: spending by category (current month)
+  - Bar chart: budget vs actual by category
+  - Line chart: net worth over time
+- **Quick actions**: Add transaction, transfer funds
+- **Recent transactions** table (last 10)
+- **Budget alerts**: cards showing categories near/over budget
+- **Savings progress**: horizontal progress bars for each goal
+
+#### Transactions (`/transactions`)
+- Paginated table with search, filter by date/category/type/account/tag
+- HTMX-powered inline add/edit forms (no full page reload)
+- Bulk actions: delete, tag, export selected
+- Date range picker for filtering
+
+#### Accounts (`/accounts`)
+- Card-based layout showing each account with live balance
+- Create/edit/deactivate accounts
+- Account detail view with transaction history
+
+#### Budgets (`/budgets`)
+- Monthly budget grid with progress bars (green → yellow → red)
+- Add/edit budget limits per category per month
+- Visual comparison: budget vs actual spending
+
+#### Savings Goals (`/savings`)
+- Goal cards with circular progress indicators
+- Contribute to goal (deduct from account)
+- Edit goal target/deadline, cancel goal
+
+#### Investments (`/investments`)
+- Portfolio table with gain/loss coloring (green/red)
+- Summary cards by asset type
+- Add/edit/sell investments
+
+#### Recurring Transactions (`/recurring`)
+- Table of all recurring transactions with next due date
+- Activate/pause recurring items
+- "Process Due" button to generate transactions for due items
+
+#### Tags (`/tags`)
+- Tag management (CRUD with color picker)
+- View transactions by tag
+
+#### CSV Import (`/import`)
+- Step 1: Upload CSV file
+- Step 2: Preview parsed data + column mapping UI (drag-and-drop columns to fields)
+- Step 3: Data cleaning preview (duplicates, missing values, type mismatches)
+- Step 4: Confirm and import into transactions table
+
+#### Reports (`/reports`)
+- Monthly summary report (income/expense/savings)
+- Category breakdown report
+- Export to CSV and PDF
+- Audit log viewer with filters
+
+---
+
+### Phase 6: REST API (v1)
+
+#### [NEW] [api/](finance_app/app/api/)
+All endpoints under `/api/v1/`:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/transactions` | List transactions (paginated, filterable) |
+| POST | `/api/v1/transactions` | Create transaction |
+| PUT | `/api/v1/transactions/<id>` | Update transaction |
+| DELETE | `/api/v1/transactions/<id>` | Soft-delete transaction |
+| GET | `/api/v1/accounts` | List accounts with balances |
+| POST | `/api/v1/accounts` | Create account |
+| GET | `/api/v1/accounts/<id>/balance` | Get account balance |
+| POST | `/api/v1/transfers` | Transfer funds |
+| GET | `/api/v1/budgets` | List budgets for current month |
+| GET | `/api/v1/savings` | List savings goals with progress |
+| GET | `/api/v1/investments` | List investments with gain/loss |
+| GET | `/api/v1/dashboard/summary` | Dashboard KPIs |
+| GET | `/api/v1/exchange-rates` | Current exchange rates |
+
+- API authentication via session (same as web) or API key header for external access
+- JSON responses with consistent error format
+
+---
+
+### Phase 7: UI Design System (Dark Fintech Theme)
+
+#### [NEW] [static/css/style.css](finance_app/app/static/css/style.css)
+
+**Color palette**:
+- Background: `#0a0e1a` (deep navy), `#111827` (card surfaces)
+- Accent primary: `#6366f1` (indigo) — buttons, links, active states
+- Accent secondary: `#22d3ee` (cyan) — charts, highlights
+- Success: `#10b981` (emerald) — income, gains, completed goals
+- Danger: `#ef4444` (red) — expenses, losses, over-budget
+- Warning: `#f59e0b` (amber) — approaching budget limits
+- Text: `#f9fafb` (primary), `#9ca3af` (secondary)
+- Borders: `rgba(255,255,255,0.06)`
+
+**Typography**: Inter (Google Fonts) — clean, modern, excellent for numbers
+
+**Design elements**:
+- Glass-effect sidebar with subtle blur
+- Gradient accent borders on cards
+- Smooth transitions on all interactive elements (200ms ease)
+- Hover effects on cards (subtle lift + glow)
+- Animated progress bars (savings goals, budgets)
+- Responsive grid layout (CSS Grid + Flexbox)
+- Mobile-responsive sidebar (collapsible to hamburger menu)
+
+---
+
+### Phase 8: Database Setup & Seeding
+
+#### [NEW] [seed.py](finance_app/seed.py)
+- Create default system categories (same as SQL: Salary, Freelance, Food, Transport, etc.)
+- Create default tags (essential, leisure, recurring, one-time)
+- Optionally seed sample user with sample transactions (for demo purposes)
+
+#### Migration workflow:
+```bash
+flask db init        # Initialize Alembic
+flask db migrate -m "Initial schema"    # Generate migration from models
+flask db upgrade     # Apply to PostgreSQL
+python seed.py       # Seed default data
+```
+
+---
+
+## Query & Schema Improvements Summary
+
+These improvements are baked into the plan above, but summarized here for clarity:
+
+| Area | Current Issue | Improvement |
+|------|--------------|-------------|
+| **Categories** | Global, no user ownership | Add `user_id` FK + `is_default` flag |
+| **Tags** | Global, no visual identity | Add `user_id` FK + `color` field |
+| **Soft Delete** | Hard delete loses data | Add `is_deleted` + `deleted_at` to key tables |
+| **Audit Log** | No user tracking, no diff | Add `user_id`, `old_value`, `new_value` JSON fields |
+| **Budget Alerts** | No alerting mechanism | Add `alert_threshold` + `alert_sent` + email integration |
+| **Savings Goals** | No contribution history | New `savings_contributions` table |
+| **Investments** | No sell tracking | Add `sold_date` + `sold_amount` fields |
+| **Recurring** | No pause/resume, no history | Add `is_active` + `last_processed_date` |
+| **Multi-currency** | Hardcoded PKR | `currency` + `exchange_rate` fields, cached exchange rates |
+| **Balance** | Computed every query | Can be cached via materialized view or denormalized field |
+| **CSV Import** | Raw SQL COPY, no validation | Web UI with preview, mapping, cleaning, and confirmation |
+| **User Auth** | No auth fields | `password_hash`, `google_id`, `avatar_url`, `preferred_currency` |
+| **Transfer** | No description field | Add `notes` to transfers |
+| **Transaction Tags** | No primary key | Require composite primary key on (`transaction_id`, `tag_id`) |
+
+---
+
+## Verification Plan
+
+### Automated Tests
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Test categories
+python -m pytest tests/test_auth.py -v        # Login, register, OAuth
+python -m pytest tests/test_transactions.py -v # CRUD, filters, pagination
+python -m pytest tests/test_services.py -v     # Balance, transfer, budget logic
+```
+
+### Manual Verification
+1. **Auth flow**: Register with email → login → logout → Google OAuth login
+2. **Dashboard**: Verify all charts render with correct data
+3. **Transactions**: Create, edit, delete, filter, search, paginate
+4. **Transfers**: Transfer between accounts, verify both balances update
+5. **Budgets**: Set budget → spend past threshold → verify email alert sent
+6. **CSV Import**: Upload sample CSV → preview → map columns → import → verify in transactions
+7. **Multi-currency**: Add USD transaction → verify exchange rate captured → dashboard shows PKR equivalent
+8. **Responsive UI**: Test on mobile viewport (sidebar collapses, tables scroll)

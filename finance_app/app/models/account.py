@@ -23,7 +23,13 @@ class Account(db.Model):
 
     @property
     def balance(self):
-        """Compute live balance from transactions."""
+        """Compute live balance from transactions.
+        
+        The computation handles soft-deleted rows by filtering them out 
+        (Transaction.is_deleted == False). Currently, it assumes all 
+        transactions are in the same currency as the account and does 
+        not perform cross-currency conversions.
+        """
         from .transaction import Transaction
         result = db.session.query(
             db.func.coalesce(

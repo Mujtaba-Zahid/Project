@@ -13,6 +13,10 @@ def fund_transfer(from_account_id, to_account_id, amount, user_id, notes=None):
 
     Replaces the fund_transfer() stored procedure with improved
     validation and cross-currency support.
+    
+    To prevent deadlocks, this function must lock both accounts using
+    `SELECT ... FOR UPDATE` in a deterministic order (e.g., ascending ID)
+    and confirm the balance after locking.
     """
     if from_account_id == to_account_id:
         raise ValueError('Cannot transfer to the same account.')

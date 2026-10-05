@@ -104,4 +104,5 @@ def _register_context_processors(app):
     def inject_globals():
         return {
             'app_name': 'FinanceFlow',
+            'config': app.config,
         }
